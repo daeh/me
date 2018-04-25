@@ -6,6 +6,7 @@
 - Theme: https://github.com/caiogondim/bullet-train.zsh
 - Autocomplete: https://github.com/zsh-users/zsh-autosuggestions
 - Syntax highlighting: https://github.com/zsh-users/zsh-syntax-highlighting
+- Z https://github.com/robbyrussell/oh-my-zsh/tree/master/plugins/z
 
 # tmux
 - Theme: https://github.com/caiogondim/maglev
