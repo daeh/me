@@ -14,7 +14,9 @@
 - Theme: https://github.com/caiogondim/maglev
 
 # vim
+- Vim 8
 - Plugin manager: https://github.com/junegunn/vim-plug
+- VimCompletesMe: https://github.com/ajh17/VimCompletesMe
 
 # Clipboard from vim over ssh
 - https://seancoates.com/blogs/remote-pbcopy/
