@@ -9,6 +9,7 @@
 - Z https://github.com/robbyrussell/oh-my-zsh/tree/master/plugins/z
 
 # tmux
+- Plugin Manager: https://github.com/tmux-plugins/tpm
 - Theme: https://github.com/caiogondim/maglev
 
 # vim
