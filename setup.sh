@@ -28,22 +28,27 @@ which gcc || sudo yum groupinstall "Development Tools"
 ############
 # libevent #
 ############
-wget https://github.com/libevent/libevent/releases/download/release-${LIBEVENT_VERSION}/libevent-${LIBEVENT_VERSION}.tar.gz
-tar xvzf libevent-${LIBEVENT_VERSION}.tar.gz
-cd libevent-${LIBEVENT_VERSION}
-./configure --prefix=$INSTALL_TO/dependencies/libevent --disable-shared
-make install
-cd ..
+if [ ! -f $INSTALL_TO/dependencies/libevent ]; then
+	wget https://github.com/libevent/libevent/releases/download/release-${LIBEVENT_VERSION}/libevent-${LIBEVENT_VERSION}.tar.gz
+	tar xvzf libevent-${LIBEVENT_VERSION}.tar.gz
+	cd libevent-${LIBEVENT_VERSION}
+	./configure --prefix=$INSTALL_TO/dependencies/libevent --disable-shared
+	make install
+	cd ..
+fi
+
 
 #############
 ## ncurses  #
 #############
-wget https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz
-tar xvzf ncurses-${NCURSES_VERSION}.tar.gz
-cd ncurses-${NCURSES_VERSION}
-./configure --prefix=$INSTALL_TO/dependencies/ncurses CXXFLAGS="-fPIC" CFLAGS="-fPIC"
-make install
-cd ..
+if [ ! -f $INSTALL_TO/dependencies/ncurses ]; then
+	wget https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz
+	tar xvzf ncurses-${NCURSES_VERSION}.tar.gz
+	cd ncurses-${NCURSES_VERSION}
+	./configure --prefix=$INSTALL_TO/dependencies/ncurses CXXFLAGS="-fPIC" CFLAGS="-fPIC"
+	make install
+	cd ..
+fi
 
 
 ## ---------------------- Packages ------------------------
@@ -53,49 +58,57 @@ libs="-L$INSTALL_TO/dependencies/libevent/lib -L$INSTALL_TO/dependencies/ncurses
 ############
 #   git    #
 ############
-wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz
-tar -xvf git-${GIT_VERSION}.tar.xz
-cd git-${GIT_VERSION}
-./configure --prefix=$INSTALL_TO/git
-make install
-path_extra="$INSTALL_TO/git/bin:$path_extra"
-cd ..
-$INSTALL_TO/git/bin/git clone git@github.com:insperatum/me.git $INSTALL_TO/me
+if [ ! -f $INSTALL_TO/git ]; then
+	wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz
+	tar -xvf git-${GIT_VERSION}.tar.xz
+	cd git-${GIT_VERSION}
+	./configure --prefix=$INSTALL_TO/git
+	make install
+	path_extra="$INSTALL_TO/git/bin:$path_extra"
+	cd ..
+	$INSTALL_TO/git/bin/git clone git@github.com:insperatum/me.git $INSTALL_TO/me
+fi
 
 ############
 #   tmux   #
 ############
-wget https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz
-tar xvzf tmux-${TMUX_VERSION}.tar.gz
-cd tmux-${TMUX_VERSION}
-CFLAGS="$includes" LDFLAGS="$libs" \
-  ./configure --prefix=$INSTALL_TO/tmux 
-CPPFLAGS="$includes" LDFLAGS="-static $libs" \
-  make install
-cd ..
+if [ ! -f $INSTALL_TO/tmux ]; then
+	wget https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz
+	tar xvzf tmux-${TMUX_VERSION}.tar.gz
+	cd tmux-${TMUX_VERSION}
+	CFLAGS="$includes" LDFLAGS="$libs" \
+	  ./configure --prefix=$INSTALL_TO/tmux 
+	CPPFLAGS="$includes" LDFLAGS="-static $libs" \
+	  make install
+	cd ..
+fi
 
 ############
 #   vim    #
 ############
-wget https://github.com/vim/vim/archive/v${VIM_VERSION}.tar.gz
-tar -xvf v${VIM_VERSION}.tar.gz
-cd vim-${VIM_VERSION}
-vim_cv_tgetent=zero LDFLAGS="-L$INSTALL_TO/dependencies/ncurses/lib -L$INSTALL_TO/dependencies/ncurses/bin" \
-  ./configure --prefix=$INSTALL_TO/vim
-make install
-cd ..
+if [ ! -f $INSTALL_TO/vim ]; then
+	wget https://github.com/vim/vim/archive/v${VIM_VERSION}.tar.gz
+	tar -xvf v${VIM_VERSION}.tar.gz
+	cd vim-${VIM_VERSION}
+	vim_cv_tgetent=zero LDFLAGS="-L$INSTALL_TO/dependencies/ncurses/lib -L$INSTALL_TO/dependencies/ncurses/bin" \
+	  ./configure --prefix=$INSTALL_TO/vim
+	make install
+	cd ..
+fi
 
 ############
 #   zsh    #
 ############
-wget https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download -O zsh-${ZSH_VERSION}.tar.xz
-tar -xvf zsh-${ZSH_VERSION}.tar.xz
-cd zsh-${ZSH_VERSION}
-CFLAGS="$includes" LDFLAGS="$libs" \
-  ./configure --prefix=$INSTALL_TO/zsh
-CPPFLAGS="$includes" LDFLAGS="-static $libs" \
-  make install
-cd ..
+if [ ! -f $INSTALL_TO/vim ]; then
+	wget https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download -O zsh-${ZSH_VERSION}.tar.xz
+	tar -xvf zsh-${ZSH_VERSION}.tar.xz
+	cd zsh-${ZSH_VERSION}
+	CFLAGS="$includes" LDFLAGS="$libs" \
+	  ./configure --prefix=$INSTALL_TO/zsh
+	CPPFLAGS="$includes" LDFLAGS="-static $libs" \
+	  make install
+	cd ..
+fi
 
 # ------------- Extensions / Config -------------------
 # Oh-my-zsh
