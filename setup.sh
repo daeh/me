@@ -10,9 +10,12 @@ NCURSES_VERSION=6.1
 GIT_VERSION=2.25.0
 VIM_VERSION=8.2.0316
 ZSH_VERSION=5.8
-INSTALL_TO=$(pwd)/bin2
-TEMP_DIR=$INSTALL_TO/temp
 
+DEFAULT_INSTALL_TO=$HOME/me
+read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
+INSTALL_TO=${INSTALL_TO:-$DEFAULT_INSTALL_TO}
+
+TEMP_DIR=$INSTALL_TO/temp_install
 mkdir -p $INSTALL_TO $TEMP_DIR $INSTALL_TO/dependencies
 cd $TEMP_DIR
 
@@ -43,7 +46,6 @@ make install
 cd ..
 
 
-
 ## ---------------------- Packages ------------------------
 includes="-I$INSTALL_TO/dependencies/libevent/include -I$INSTALL_TO/dependencies/ncurses/include -I$INSTALL_TO/dependencies/ncurses/include/ncurses"
 libs="-L$INSTALL_TO/dependencies/libevent/lib -L$INSTALL_TO/dependencies/ncurses/lib -L$INSTALL_TO/dependencies/libevent/include -L$INSTALL_TO/dependencies/ncurses/include -L$INSTALL_TO/dependencies/ncurses/include/ncurses"
@@ -58,6 +60,7 @@ cd git-${GIT_VERSION}
 make install
 path_extra="$INSTALL_TO/git/bin:$path_extra"
 cd ..
+$INSTALL_TO/git/bin/git clone git@github.com:insperatum/me.git $INSTALL_TO/me
 
 ############
 #   tmux   #
@@ -94,6 +97,22 @@ CPPFLAGS="$includes" LDFLAGS="-static $libs" \
   make install
 cd ..
 
+# ------------- Extensions / Config -------------------
+# Oh-my-zsh
+PATH=$INSTALL_TO/zsh/bin:$PATH RUNZSH=no sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
+
+# Zsh plugins
+git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+
+# tmux plugin manager
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+
+
+for dotfile in $(ls $INSTALL_TO/me/dotfiles); do
+	[ -f $HOME/$dotfile ] && mv $HOME/$dotfile $HOME/${dotfile}_$(date +"%F_%H.%M.%S")
+	ln -s $INSTALL_TO/me/dotfiles/$dotfile $HOME/$dotfile
+done
 
 
 # -----------------------------------------------------
