@@ -162,8 +162,7 @@ done
 # cleanup
 rm -rf $TEMP_DIR
 
-# Add to bashrc #
-echo "export PATH=$path_extra:\$PATH" >> $HOME/.bashrc
-
-# set tmux shell
-echo "export DEFAULT_TMUX_SHELL=$INSTALL_TO/zsh/bin/zsh" >> $HOME/.bashrc
+# Create .merc file
+echo "export PATH=$path_extra:\$PATH" > $HOME/.merc
+echo "export DEFAULT_TMUX_SHELL=$INSTALL_TO/zsh/bin/zsh" >> $HOME/.merc
+grep "source \$HOME/.merc" $HOME/.bashrc || echo "source \$HOME/.merc" >> $HOME/.bashrc
