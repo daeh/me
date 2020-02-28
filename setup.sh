@@ -21,8 +21,8 @@ mkdir -p $INSTALL_TO $TEMP_DIR $INSTALL_TO/dependencies
 cd $TEMP_DIR
 
 #  on AWS, make sure we have gcc and libcurl
-which gcc || sudo -n yum groupinstall -y "Development Tools" || ( echo no gcc; exit )
-which curl-config || sudo -n yum install -y curl-devel || ( echo no libcurl; exit )
+which gcc || sudo -n yum groupinstall -y "Development Tools" || ( echo no gcc; exit 1 )
+which curl-config || sudo -n yum install -y curl-devel || ( echo no libcurl; exit 1 )
 
 # ---------------------- Dependencies ------------------------
 
