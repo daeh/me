@@ -136,6 +136,26 @@ path_extra="$INSTALL_TO/zsh/bin:$path_extra"
 
 
 # ------------- Extensions / Config -------------------
+# Dotfiles
+if [ ! -d $INSTALL_TO/me ]; then
+	$INSTALL_TO/git/bin/git clone https://github.com/insperatum/me.git $INSTALL_TO/me
+fi
+cd $INSTALL_TO/me
+git pull
+
+for dotfile in $(ls -a $INSTALL_TO/me/dotfiles | grep [^.]); do
+	echo Addding dotfile: $dotfile
+	if [ -f $HOME/$dotfile ]; then
+		if [ -L $HOME/$dotfile ]; then
+			rm $HOME/$dotfile	
+		else
+			mv $HOME/$dotfile $HOME/${dotfile}_$(date +"%F_%H.%M.%S")
+		fi
+	fi
+	ln -s $INSTALL_TO/me/dotfiles/$dotfile $HOME/$dotfile
+done
+
+
 # Oh-my-zsh
 if [ ! -d $HOME/.oh-my-zsh ]; then
 	PATH=$INSTALL_TO/zsh/bin:$PATH RUNZSH=no sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
@@ -157,26 +177,7 @@ fi
 if [ ! -d $HOME/.tmux/plugins/tpm ]; then
 	git clone https://github.com/tmux-plugins/tpm $HOME/.tmux/plugins/tpm
 fi
-
-
-if [ ! -d $INSTALL_TO/me ]; then
-	$INSTALL_TO/git/bin/git clone https://github.com/insperatum/me.git $INSTALL_TO/me
-fi
-cd $INSTALL_TO/me
-git pull
-
-for dotfile in $(ls -a $INSTALL_TO/me/dotfiles | grep [^.]); do
-	echo Addding dotfile: $dotfile
-	if [ -f $HOME/$dotfile ]; then
-		if [ -L $HOME/$dotfile ]; then
-			rm $HOME/$dotfile	
-		else
-			mv $HOME/$dotfile $HOME/${dotfile}_$(date +"%F_%H.%M.%S")
-		fi
-	fi
-	ln -s $INSTALL_TO/me/dotfiles/$dotfile $HOME/$dotfile
-done
-
+$HOME/.tmux/plugins/tpm/scripts/install_plugins.sh
 
 # -----------------------------------------------------
 
