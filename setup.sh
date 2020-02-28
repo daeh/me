@@ -59,7 +59,6 @@ libs="-L$INSTALL_TO/dependencies/libevent/lib -L$INSTALL_TO/dependencies/ncurses
 ############
 #   git    #
 ############
-rm -rf $INSTALL_TO/git
 if [ ! -d $INSTALL_TO/git ]; then
 	wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz
 	tar -xvf git-${GIT_VERSION}.tar.xz
