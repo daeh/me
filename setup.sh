@@ -184,4 +184,5 @@ rm -rf $TEMP_DIR
 echo "export PATH=$path_extra:\$PATH" > $HOME/.merc
 echo "export DEFAULT_TMUX_SHELL=$INSTALL_TO/zsh/bin/zsh" >> $HOME/.merc
 echo "export ME_PATH=$INSTALL_TO" >> $HOME/.merc
+grep "source \$HOME/.merc" $HOME/.bash_profile || echo "source \$HOME/.merc" >> $HOME/.bash_profile || 
 grep "source \$HOME/.merc" $HOME/.bashrc || echo "source \$HOME/.merc" >> $HOME/.bashrc
