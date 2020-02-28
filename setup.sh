@@ -20,9 +20,8 @@ TEMP_DIR=$INSTALL_TO/temp_install
 mkdir -p $INSTALL_TO $TEMP_DIR $INSTALL_TO/dependencies
 cd $TEMP_DIR
 
-#  on AWS, make sure we have gcc and libcurl
+# Make sure we have gcc
 which gcc || sudo -n yum groupinstall -y "Development Tools" || ( echo no gcc; exit 1 )
-which curl-config || sudo -n yum install -y curl-devel || ( echo no libcurl; exit 1 )
 
 # ---------------------- Dependencies ------------------------
 
@@ -54,6 +53,8 @@ fi
 ############
 #   curl   # (for git)
 ############
+# If curl is not already installled...
+which curl-config || sudo -n yum install -y curl-devel || \
 if [ ! -d $INSTALL_TO/dependencies/curl ]; then
 	wget http://curl.haxx.se/download/curl-${CURL_VERSION}.tar.gz
 	tar -xvf curl-${CURL_VERSION}.tar.gz
@@ -74,8 +75,12 @@ if [ ! -d $INSTALL_TO/git ]; then
 	wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz
 	tar -xvf git-${GIT_VERSION}.tar.xz
 	cd git-${GIT_VERSION}
-	PATH=$INSTALL_TO/dependencies/curl/bin:$PATH \
-	  ./configure --prefix=$INSTALL_TO/git --with-curl=$INSTALL_TO/dependencies/curl
+	if [ -d $INSTALL_TO/dependencies/curl ]; then
+	  PATH=$INSTALL_TO/dependencies/curl/bin:$PATH \
+	    ./configure --prefix=$INSTALL_TO/git --with-curl=$INSTALL_TO/dependencies/curl
+	else
+	  ./configure --prefix=$INSTALL_TO/git --with-curl
+	fi
 	make install
 	cd ..
 fi
