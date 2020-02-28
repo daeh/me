@@ -59,7 +59,7 @@ if [ ! -d $INSTALL_TO/dependencies/curl ]; then
 	wget http://curl.haxx.se/download/curl-${CURL_VERSION}.tar.gz
 	tar -xvf curl-${CURL_VERSION}.tar.gz
 	cd curl-${CURL_VERSION}
-	./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl=$INSTALL_TO/dependencies/openssl
+	./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl
 	make install
 	cd ..
 fi
