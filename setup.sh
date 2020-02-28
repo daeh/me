@@ -145,12 +145,10 @@ git pull
 
 for dotfile in $(ls -a $INSTALL_TO/me/dotfiles | grep [^.]); do
 	echo Addding dotfile: $dotfile
-	if [ -f $HOME/$dotfile ]; then
-		if [ -L $HOME/$dotfile ]; then
-			rm $HOME/$dotfile	
-		else
-			mv $HOME/$dotfile $HOME/${dotfile}_$(date +"%F_%H.%M.%S")
-		fi
+	if [ -L $HOME/$dotfile ]; then
+		rm $HOME/$dotfile	
+	elif [ -f $HOME/$dotfile ]; then
+		mv $HOME/$dotfile $HOME/${dotfile}_$(date +"%F_%H.%M.%S")
 	fi
 	ln -s $INSTALL_TO/me/dotfiles/$dotfile $HOME/$dotfile
 done
