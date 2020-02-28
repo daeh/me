@@ -7,6 +7,7 @@ set -e
 TMUX_VERSION=2.9a
 LIBEVENT_VERSION=2.1.8-stable
 NCURSES_VERSION=6.1
+CURL_VERSION=7.68.0
 GIT_VERSION=2.25.0
 VIM_VERSION=8.2.0316
 ZSH_VERSION=5.8
@@ -19,18 +20,18 @@ TEMP_DIR=$INSTALL_TO/temp_install
 mkdir -p $INSTALL_TO $TEMP_DIR $INSTALL_TO/dependencies
 cd $TEMP_DIR
 
-# on AWS, make sure we have gcc 
-which gcc || sudo yum groupinstall "Development Tools"
-
+#  on AWS, make sure we have gcc and libcurl
+which gcc || sudo -n yum groupinstall -y "Development Tools" || ( echo no gcc; exit )
+which curl-config || sudo -n yum install -y curl-devel || ( echo no libcurl; exit )
 
 # ---------------------- Dependencies ------------------------
 
 ############
-# libevent #
+# libevent # (for tmux)
 ############
 if [ ! -d $INSTALL_TO/dependencies/libevent ]; then
 	wget https://github.com/libevent/libevent/releases/download/release-${LIBEVENT_VERSION}/libevent-${LIBEVENT_VERSION}.tar.gz
-	tar xvzf libevent-${LIBEVENT_VERSION}.tar.gz
+	tar -xvzf libevent-${LIBEVENT_VERSION}.tar.gz
 	cd libevent-${LIBEVENT_VERSION}
 	./configure --prefix=$INSTALL_TO/dependencies/libevent --disable-shared
 	make install
@@ -38,17 +39,54 @@ if [ ! -d $INSTALL_TO/dependencies/libevent ]; then
 fi
 
 
-#############
-## ncurses  #
-#############
+############
+# ncurses  # (for tmux, zsh)
+############
 if [ ! -d $INSTALL_TO/dependencies/ncurses ]; then
 	wget https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz
-	tar xvzf ncurses-${NCURSES_VERSION}.tar.gz
+	tar -xvzf ncurses-${NCURSES_VERSION}.tar.gz
 	cd ncurses-${NCURSES_VERSION}
 	./configure --prefix=$INSTALL_TO/dependencies/ncurses CXXFLAGS="-fPIC" CFLAGS="-fPIC"
 	make install
 	cd ..
 fi
+
+
+###############
+### openssl  # (for git)
+##############
+#if [ ! -d $INSTALL_TO/dependencies/openssl ]; then
+#	wget https://www.openssl.org/source/openssl-1.1.1b.tar.gz
+#	tar -xvf openssl-1.1.1b.tar.gz
+#	cd openssl-1.1.1b
+#	./config --prefix=$INSTALL_TO/dependencies/openssl
+#	make install
+#	cd ..
+#fi
+#
+##############
+###   curl   # (for git)
+##############
+#if [ ! -d $INSTALL_TO/dependencies/curl ]; then
+#	wget http://curl.haxx.se/download/curl-${CURL_VERSION}.tar.gz
+#	tar -xvf curl-${CURL_VERSION}.tar.gz
+#	cd curl-${CURL_VERSION}
+#	./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl=$INSTALL_TO/dependencies/openssl
+#	make install
+#	cd ..
+#fi
+#
+##############
+###  expat   # (for git)
+##############
+#if [ ! -d $INSTALL_TO/dependencies/expat ]; then
+#	wget http://downloads.sourceforge.net/expat/expat-2.1.0.tar.gz
+#	tar expat-2.1.0.tar.gz
+#	cd expat-2.1.0
+#	./configure --prefix=$INSTALL_TO/dependencies/expat
+#	make install
+#	cd ..
+#fi
 
 
 ## ---------------------- Packages ------------------------
@@ -58,15 +96,33 @@ libs="-L$INSTALL_TO/dependencies/libevent/lib -L$INSTALL_TO/dependencies/ncurses
 ############
 #   git    #
 ############
+rm -rf $INSTALL_TO/git
 if [ ! -d $INSTALL_TO/git ]; then
 	wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz
 	tar -xvf git-${GIT_VERSION}.tar.xz
 	cd git-${GIT_VERSION}
-	./configure --prefix=$INSTALL_TO/git
+	./configure --prefix=$INSTALL_TO/git --with-curl
 	make install
 	cd ..
 fi
 path_extra="$INSTALL_TO/git/bin:$path_extra"
+
+#rm -rf $INSTALL_TO/git
+#if [ ! -d $INSTALL_TO/git ]; then
+#	#wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz
+#	#tar -xvf git-${GIT_VERSION}.tar.xz
+#	cd git-${GIT_VERSION}
+#	export PATH=$INSTALL_TO/dependencies/curl/bin:$PATH
+#	CFLAGS="-I$INSTALL_TO/dependencies/curl/lib -I$INSTALL_TO/dependencies/curl/include" \
+#	CPPFLAGS="-I$INSTALL_TO/dependencies/curl/lib -I$INSTALL_TO/dependencies/curl/include" \
+#	LDFLAGS="-L$INSTALL_TO/dependencies/curl/lib -L$INSTALL_TO/dependencies/curl/include" \
+#	  ./configure --prefix=$INSTALL_TO/git --with-curl=$INSTALL_TO/dependencies/curl --with-expat=$INSTALL_TO/dependencies/expat --with-openssl=$INSTALL_TO/dependencies/openssl
+#	echo make install
+#	sleep 5
+#	make install
+#	cd ..
+#fi
+#path_extra="$INSTALL_TO/git/bin:$path_extra"
 
 ############
 #   tmux   #
@@ -139,7 +195,7 @@ fi
 
 
 if [ ! -d $INSTALL_TO/me ]; then
-	$INSTALL_TO/git/bin/git clone git@github.com:insperatum/me.git $INSTALL_TO/me
+	$INSTALL_TO/git/bin/git clone https://github.com/insperatum/me.git $INSTALL_TO/me
 fi
 cd $INSTALL_TO/me
 git pull
