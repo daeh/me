@@ -62,7 +62,20 @@ if [ ! -d $INSTALL_TO/dependencies/curl ]; then
 	wget http://curl.haxx.se/download/curl-${CURL_VERSION}.tar.gz
 	tar -xvf curl-${CURL_VERSION}.tar.gz
 	cd curl-${CURL_VERSION}
-	./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl
+	./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl || (
+		cd ..
+		# might need to install openssl
+		if [ ! -d $INSTALL_TO/dependencies/openssl ]; then
+			wget https://www.openssl.org/source/openssl-1.1.1b.tar.gz
+			tar -xvf openssl-1.1.1b.tar.gz
+			cd openssl-1.1.1b
+			./config --prefix=$INSTALL_TO/dependencies/openssl
+			make install
+			cd ..
+		fi
+		cd curl-${CURL_VERSION}
+		./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl=$INSTALL_TO/dependencies/openssl
+	)
 	make install
 	cd ..
 fi
