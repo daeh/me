@@ -51,6 +51,17 @@ if [ ! -d $INSTALL_TO/dependencies/ncurses ]; then
 	cd ..
 fi
 
+############
+#   curl   # (for git)
+############
+if [ ! -d $INSTALL_TO/dependencies/curl ]; then
+	wget http://curl.haxx.se/download/curl-${CURL_VERSION}.tar.gz
+	tar -xvf curl-${CURL_VERSION}.tar.gz
+	cd curl-${CURL_VERSION}
+	./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl=$INSTALL_TO/dependencies/openssl
+	make install
+	cd ..
+fi
 
 ## ---------------------- Packages ------------------------
 includes="-I$INSTALL_TO/dependencies/libevent/include -I$INSTALL_TO/dependencies/ncurses/include -I$INSTALL_TO/dependencies/ncurses/include/ncurses"
@@ -63,7 +74,8 @@ if [ ! -d $INSTALL_TO/git ]; then
 	wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz
 	tar -xvf git-${GIT_VERSION}.tar.xz
 	cd git-${GIT_VERSION}
-	./configure --prefix=$INSTALL_TO/git --with-curl
+	PATH=$INSTALL_TO/dependencies/curl/bin:$PATH \
+	  ./configure --prefix=$INSTALL_TO/git --with-curl=$INSTALL_TO/dependencies/curl
 	make install
 	cd ..
 fi
