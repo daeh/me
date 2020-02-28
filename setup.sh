@@ -169,7 +169,7 @@ done
 
 # Oh-my-zsh
 if [ ! -d $HOME/.oh-my-zsh ]; then
-	PATH=$INSTALL_TO/zsh/bin:$PATH RUNZSH=no sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
+	PATH=$INSTALL_TO/zsh/bin:$PATH RUNZSH=no CHSH=no sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
 fi
 
 # Zsh plugins
@@ -202,3 +202,5 @@ echo "export ME_PATH=$INSTALL_TO" >> $HOME/.merc
 echo "source \$HOME/.me.conf" >> $HOME/.merc
 grep "source \$HOME/.merc" $HOME/.bash_profile || echo "source \$HOME/.merc" >> $HOME/.bash_profile || 
 grep "source \$HOME/.merc" $HOME/.bashrc || echo "source \$HOME/.merc" >> $HOME/.bashrc
+
+echo Installled to: $INSTALL_TO
