@@ -102,7 +102,7 @@ path_extra="$INSTALL_TO/vim/bin:$path_extra"
 ############
 #   zsh    #
 ############
-if [ ! -d $INSTALL_TO/vim ]; then
+if [ ! -d $INSTALL_TO/zsh ]; then
 	wget https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download -O zsh-${ZSH_VERSION}.tar.xz
 	tar -xvf zsh-${ZSH_VERSION}.tar.xz
 	cd zsh-${ZSH_VERSION}
