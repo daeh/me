@@ -16,6 +16,9 @@ DEFAULT_INSTALL_TO=${ME_PATH:-$HOME/me}
 read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
 INSTALL_TO=${INSTALL_TO:-$DEFAULT_INSTALL_TO}
 
+echo "Installing to: $INSTALL_TO"
+sleep 1
+
 TEMP_DIR=$INSTALL_TO/temp_install
 mkdir -p $INSTALL_TO $TEMP_DIR $INSTALL_TO/dependencies
 cd $TEMP_DIR
