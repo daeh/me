@@ -12,7 +12,7 @@ GIT_VERSION=2.25.0
 VIM_VERSION=8.2.0316
 ZSH_VERSION=5.8
 
-DEFAULT_INSTALL_TO=$HOME/me
+DEFAULT_INSTALL_TO=${ME_PATH:-$HOME/me}
 read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
 INSTALL_TO=${INSTALL_TO:-$DEFAULT_INSTALL_TO}
 
@@ -166,4 +166,5 @@ rm -rf $TEMP_DIR
 # Create .merc file
 echo "export PATH=$path_extra:\$PATH" > $HOME/.merc
 echo "export DEFAULT_TMUX_SHELL=$INSTALL_TO/zsh/bin/zsh" >> $HOME/.merc
+echo "export ME_PATH=$INSTALL_TO" >> $HOME/.merc
 grep "source \$HOME/.merc" $HOME/.bashrc || echo "source \$HOME/.merc" >> $HOME/.bashrc
