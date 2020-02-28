@@ -2,4 +2,4 @@
 
 To install:
 
-`wget lbh.scripts.mit.edu/me.sh -O me.sh && sh me.sh`
+`wget lbh.scripts.mit.edu/me.sh -O - | sh`
