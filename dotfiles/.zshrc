@@ -109,6 +109,8 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-#source ~/.bash_profile
 
+if [ -f ~/.bash_profile ]; then
+	source ~/.bash_profile
+fi
 source $HOME/.merc
