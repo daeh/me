@@ -95,7 +95,7 @@ libs="-L$INSTALL_TO/dependencies/libevent/lib -L$INSTALL_TO/dependencies/ncurses
 ############
 if [ ! -d $INSTALL_TO/git ]; then
 	which git && version_gt $(git --version | cut -d" " -f3) $GIT_MIN_VERSION && has_git=1
-	if [ $has_git == 1 ]; then
+	if [ $has_git ]; then
 		echo "Using already-installed git";
 	else
 		wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz
