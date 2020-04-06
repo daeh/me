@@ -9,6 +9,7 @@ LIBEVENT_VERSION=2.1.8-stable
 NCURSES_VERSION=6.1
 CURL_VERSION=7.68.0
 GIT_VERSION=2.25.0
+GIT_MIN_VERSION=2.17
 VIM_VERSION=8.2.0316
 ZSH_VERSION=5.8
 
@@ -25,6 +26,9 @@ cd $TEMP_DIR
 
 # Make sure we have gcc
 which gcc || sudo -n yum groupinstall -y "Development Tools" || ( echo no gcc; exit 1 )
+
+# compare version numbers
+function version_gt { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 
 # ---------------------- Dependencies ------------------------
 
@@ -88,17 +92,21 @@ libs="-L$INSTALL_TO/dependencies/libevent/lib -L$INSTALL_TO/dependencies/ncurses
 #   git    #
 ############
 if [ ! -d $INSTALL_TO/git ]; then
-	wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz
-	tar -xvf git-${GIT_VERSION}.tar.xz
-	cd git-${GIT_VERSION}
-	if [ -d $INSTALL_TO/dependencies/curl ]; then
-	  PATH=$INSTALL_TO/dependencies/curl/bin:$PATH \
-	    ./configure --prefix=$INSTALL_TO/git --with-curl=$INSTALL_TO/dependencies/curl
+	if [ $(which git) ] && [ version_gt $(git --version | cut -d" " -f3) $GIT_MIN_VERSION ]; then
+		echo "Using already installed git";
 	else
-	  ./configure --prefix=$INSTALL_TO/git --with-curl
+		wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz
+		tar -xvf git-${GIT_VERSION}.tar.xz
+		cd git-${GIT_VERSION}
+		if [ -d $INSTALL_TO/dependencies/curl ]; then
+		  PATH=$INSTALL_TO/dependencies/curl/bin:$PATH \
+		    ./configure --prefix=$INSTALL_TO/git --with-curl=$INSTALL_TO/dependencies/curl
+		else
+		  ./configure --prefix=$INSTALL_TO/git --with-curl
+		fi
+		make install
+		cd ..
 	fi
-	make install
-	cd ..
 fi
 path_extra="$INSTALL_TO/git/bin:$path_extra"
 
