@@ -160,9 +160,11 @@ path_extra="$INSTALL_TO/zsh/bin:$path_extra"
 
 
 # ------------- Extensions / Config -------------------
+export PATH=$path_extra:\$PATH
+
 # Dotfiles
 if [ ! -d $INSTALL_TO/me ]; then
-	$INSTALL_TO/git/bin/git clone https://github.com/insperatum/me.git $INSTALL_TO/me
+	git clone https://github.com/insperatum/me.git $INSTALL_TO/me
 fi
 cd $INSTALL_TO/me
 git pull
