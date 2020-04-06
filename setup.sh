@@ -28,7 +28,9 @@ cd $TEMP_DIR
 which gcc || sudo -n yum groupinstall -y "Development Tools" || ( echo no gcc; exit 1 )
 
 # compare version numbers
-function version_gt { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
+version_gt() {
+  test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1";
+}
 
 # ---------------------- Dependencies ------------------------
 
