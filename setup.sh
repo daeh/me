@@ -160,7 +160,7 @@ path_extra="$INSTALL_TO/zsh/bin:$path_extra"
 
 
 # ------------- Extensions / Config -------------------
-export PATH=$path_extra:\$PATH
+export PATH=$path_extra:$PATH
 
 # Dotfiles
 if [ ! -d $INSTALL_TO/me ]; then
