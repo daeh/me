@@ -4,13 +4,13 @@
 # exit on error
 set -e
 
-TMUX_VERSION=2.9a
-LIBEVENT_VERSION=2.1.8-stable
-NCURSES_VERSION=6.1
-CURL_VERSION=7.68.0
-GIT_VERSION=2.25.0
-GIT_MIN_VERSION=2.17
-VIM_VERSION=8.2.0316
+TMUX_VERSION=3.1b
+LIBEVENT_VERSION=2.1.12-stable
+NCURSES_VERSION=6.2
+CURL_VERSION=7.71.1
+GIT_VERSION=2.28.0
+GIT_MIN_VERSION=2.17 ### ??
+VIM_VERSION=8.2.1379
 ZSH_VERSION=5.8
 
 DEFAULT_INSTALL_TO=${ME_PATH:-$HOME/me}
@@ -164,16 +164,16 @@ export PATH=$path_extra:$PATH
 
 # Dotfiles
 if [ ! -d $INSTALL_TO/me ]; then
-	git clone https://github.com/insperatum/me.git $INSTALL_TO/me
+	git clone https://github.com/daeh/me.git $INSTALL_TO/me
 fi
 cd $INSTALL_TO/me
 git pull
 
 for dotfile in $(ls -a $INSTALL_TO/me/dotfiles | grep [^.]); do
 	echo Addding dotfile: $dotfile
-	if [ -L $HOME/$dotfile ]; then
+	if [ -L $HOME/$dotfile ]; then ### is symbolic link
 		rm $HOME/$dotfile	
-	elif [ -f $HOME/$dotfile ]; then
+	elif [ -f $HOME/$dotfile ]; then ### is file
 		mv $HOME/$dotfile $HOME/${dotfile}_$(date +"%F_%H.%M.%S")
 	fi
 	ln -s $INSTALL_TO/me/dotfiles/$dotfile $HOME/$dotfile
