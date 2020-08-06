@@ -219,4 +219,8 @@ echo "source \$HOME/.me.conf" >> $HOME/.merc
 grep "source \$HOME/.merc" $HOME/.bash_profile || echo "source \$HOME/.merc" >> $HOME/.bash_profile || 
 grep "source \$HOME/.merc" $HOME/.bashrc || echo "source \$HOME/.merc" >> $HOME/.bashrc
 
+### for some reason, I need this in my .bashrc :
+# export PATH=$HOME/local/bin:$PATH
+# having source $HOME/.merc in .bash_profile alone does not work, having that and `source $HOME/.merc` in $HOME/.bashrc does not work.
+
 echo Installled to: $INSTALL_TO
