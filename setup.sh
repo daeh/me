@@ -187,8 +187,11 @@ fi
 
 # Zsh plugins
 zshcustom=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
+# if [ ! -f ${zshcustom}/bullet-train.zsh-theme ]; then
+# 	wget http://raw.github.com/caiogondim/bullet-train-oh-my-zsh-theme/master/bullet-train.zsh-theme -O ${zshcustom}/bullet-train.zsh-theme
+# fi
 if [ ! -f ${zshcustom}/bullet-train.zsh-theme ]; then
-	wget http://raw.github.com/caiogondim/bullet-train-oh-my-zsh-theme/master/bullet-train.zsh-theme -O ${zshcustom}/bullet-train.zsh-theme
+	git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${zshcustom}/themes/powerlevel10k
 fi
 if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ]; then
 	git clone https://github.com/zsh-users/zsh-autosuggestions ${zshcustom}/plugins/zsh-autosuggestions
