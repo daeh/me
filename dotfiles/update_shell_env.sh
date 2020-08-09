@@ -1,13 +1,11 @@
 source ~/.zshrc || exit
 
-tb_conda
-
 zsh --version
 echo "current tmux:"
 tmux -V
 echo "update via https://gist.github.com/ryin/3106801"
 
-upgrade_oh_my_zsh
+omz update
 
 cd ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting || exit
 git pull --rebase --stat origin master
@@ -20,6 +18,7 @@ git pull --rebase --stat origin master
 
 cd ~ || exit
 
+tb_conda
 
 conda update -n base -c defaults conda
 conda update -n base -c defaults python
