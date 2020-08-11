@@ -169,14 +169,17 @@ fi
 cd $INSTALL_TO/me
 git pull
 
-for dotfile in $(ls -a $INSTALL_TO/me/dotfiles | grep [^.]); do
+# for dotfile in $(ls -a $INSTALL_TO/me/dotfiles | grep [^.]); do
+for dotfilesrc in $(ls -a $INSTALL_TO/me/dotfiles); do
+	dotfile=".${dotfilesrc}"
 	echo Addding dotfile: $dotfile
+
 	if [ -L $HOME/$dotfile ]; then ### is symbolic link
 		rm $HOME/$dotfile	
 	elif [ -f $HOME/$dotfile ]; then ### is file
 		mv $HOME/$dotfile $HOME/${dotfile}_$(date +"%F_%H.%M.%S")
 	fi
-	ln -s $INSTALL_TO/me/dotfiles/$dotfile $HOME/$dotfile
+	ln -s $INSTALL_TO/me/dotfiles/$dotfilesrc $HOME/$dotfile
 done
 
 

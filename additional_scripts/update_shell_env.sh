@@ -18,6 +18,22 @@ git pull --rebase --stat origin master
 
 cd ~ || exit
 
+################### CmdStan
+
+g++ --version
+make --version
+
+cd /om/user/daeda/software/ || exit
+wget https://github.com/stan-dev/cmdstan/releases/download/v2.24.1/cmdstan-2.24.1.tar.gz
+
+tar xvzf cmdstan-2.24.1.tar.gz
+cd cmdstan-2.24.1
+make -j6 build
+
+cd ~ || exit
+
+###################
+
 tb_conda
 
 conda update -n base -c defaults conda
@@ -28,7 +44,7 @@ conda update -n omlab -c defaults python
 conda update -n omlab --all -c defaults
 
 pip install --upgrade pip
-pip install -U tmuxp
+pip install --upgrade tmuxp
 
 #######
 # env_iaa
