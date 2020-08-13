@@ -3,7 +3,6 @@ source ~/.zshrc || exit
 zsh --version
 echo "current tmux:"
 tmux -V
-echo "update via https://gist.github.com/ryin/3106801"
 
 omz update
 
@@ -23,9 +22,6 @@ cd ~ || exit
 
 ################### CmdStan
 CMDSTAN_VERSION=2.24.1
-wget https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz
-tar xvzf tmux-${TMUX_VERSION}.tar.gz
-cd tmux-${TMUX_VERSION}
 
 g++ --version
 make --version
@@ -34,7 +30,7 @@ cd /om/user/daeda/software/ || exit
 wget https://github.com/stan-dev/cmdstan/releases/download/v${CMDSTAN_VERSION}/cmdstan-${CMDSTAN_VERSION}.tar.gz
 
 tar xvzf cmdstan-${CMDSTAN_VERSION}.tar.gz
-cd cmdstan-${CMDSTAN_VERSION}
+cd cmdstan-${CMDSTAN_VERSION} || exit
 make -j6 build
 
 cd .. || exit
