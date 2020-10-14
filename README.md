@@ -2,4 +2,6 @@
 
 To install:
 
-`sh -c "$(wget -O- lbh.scripts.mit.edu/me.sh)"`
+`scp /Users/dae/coding/-GitRepos/me/setup.sh daeda@openmind7.mit.edu:/home/daeda/setup2.sh`
+
+`## sh -c "$(wget -O- lbh.scripts.mit.edu/me.sh)"`
