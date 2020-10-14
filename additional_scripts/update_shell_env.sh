@@ -64,6 +64,7 @@ pip install --upgrade tmuxp
 
 env_iaa_cmdstan
 conda update -n ve_iaa_cmdstanpy --all -c conda-forge
+which pip
 pip install --upgrade pip
 pip install --upgrade tmuxp
 pip install --upgrade "cmdstanpy[all]"
