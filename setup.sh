@@ -158,6 +158,25 @@ fi
 path_extra="$INSTALL_TO/zsh/bin:$path_extra"
 
 
+############
+#freesurfer#
+############
+### install instructions https://surfer.nmr.mgh.harvard.edu/fswiki//FS7_linux
+### downloads https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads
+# cat /etc/centos-release ### check which centos release
+# cd /om2/user/daeda/software || exit
+# rm -r freesurfer ### remove old version
+# wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.1.1/freesurfer-linux-centos7_x86_64-7.1.1.tar.gz
+# tar -zxvpf freesurfer-linux-centos7_x86_64-7.1.1.tar.gz
+# rm freesurfer-linux-centos7_x86_64-7.1.1.tar.gz
+# cd freesurfer
+
+# ### add to .me.conf ###
+# export FREESURFER_HOME=/om2/user/daeda/software/freesurfer ### 7.1.1
+# export SUBJECTS_DIR=$FREESURFER_HOME/subjects
+# export FS_LICENSE='/gablab/p/ADHDER/data/adhder/code/license.txt'
+# source $FREESURFER_HOME/SetUpFreeSurfer.sh
+
 
 # ------------- Extensions / Config -------------------
 export PATH=$path_extra:$PATH

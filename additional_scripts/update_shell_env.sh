@@ -18,29 +18,37 @@ git pull --rebase --stat origin master
 cd ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k || exit
 git -C ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k pull
 
+echo "done"
+
 cd ~ || exit
 
 ################### CmdStan
-CMDSTAN_VERSION=2.24.1
+CMDSTAN_VERSION="2.28.2"
 
+module load openmind/gcc/11.1.0
+module load openmind/isl/0.23
+module load openmind/mpfr/4.1.0  openmind/mpc/1.2.1 
+module load openmind/make/4.3
 g++ --version
 make --version
 
-cd /om/user/daeda/software/ || exit
-wget https://github.com/stan-dev/cmdstan/releases/download/v${CMDSTAN_VERSION}/cmdstan-${CMDSTAN_VERSION}.tar.gz
+cd "/om/user/daeda/software/" || exit
+wget "https://github.com/stan-dev/cmdstan/releases/download/v${CMDSTAN_VERSION}/cmdstan-${CMDSTAN_VERSION}.tar.gz"
 
-tar xvzf cmdstan-${CMDSTAN_VERSION}.tar.gz
-cd cmdstan-${CMDSTAN_VERSION} || exit
+tar xvzf "cmdstan-${CMDSTAN_VERSION}.tar.gz"
+cd "cmdstan-${CMDSTAN_VERSION}" || exit
 make -j6 build
 
 cd .. || exit
-rm cmdstan-${CMDSTAN_VERSION}.tar.gz
+rm "cmdstan-${CMDSTAN_VERSION}.tar.gz"
 
 cd ~ || exit
 
 ###################
 
 tb_conda
+
+conda clean --all
 
 conda update -n base -c defaults conda
 conda update -n base -c defaults python
