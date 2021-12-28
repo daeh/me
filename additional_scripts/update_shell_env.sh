@@ -53,9 +53,9 @@ conda clean --all
 conda update -n base -c defaults conda
 conda update -n base -c defaults python
 
-conda update -n omlab -c defaults anaconda
-conda update -n omlab -c defaults python
-conda update -n omlab --all -c defaults
+conda update -n omlab --all -c conda-forge
+conda update -n omlab -c conda-forge python
+conda update -n omlab -c conda-forge jupyterlab
 
 pip install --upgrade pip
 pip install --upgrade tmuxp

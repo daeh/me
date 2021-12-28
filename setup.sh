@@ -4,11 +4,11 @@
 # exit on error
 set -e
 
-TMUX_VERSION=3.1b # https://github.com/tmux/tmux/wiki
+TMUX_VERSION=3.2a # https://github.com/tmux/tmux/wiki
 LIBEVENT_VERSION=2.1.12-stable # https://libevent.org/
 NCURSES_VERSION=6.2 # https://invisible-island.net/ncurses/announce.html#h2-release-notes
 CURL_VERSION=7.71.1 # https://curl.haxx.se/download.html
-GIT_VERSION=2.28.0 # https://git-scm.com/download/linux
+GIT_VERSION=2.34.0 # https://git-scm.com/download/linux
 GIT_MIN_VERSION=2.17
 VIM_VERSION=8.2.1379
 ZSH_VERSION=5.8 # http://zsh.sourceforge.net/releases.html
