@@ -1,0 +1,11 @@
+name: ve_nipyrelax
+channels:
+  - conda-forge
+dependencies:
+  - python >= 3.8
+  - nipype
+  - pip
+  - pip:
+    - tmuxp
+
+prefix: /om/user/daeda/software/anaconda3/envs/ve_nipyrelax

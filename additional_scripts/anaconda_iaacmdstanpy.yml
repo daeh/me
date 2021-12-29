@@ -1,0 +1,20 @@
+### conda update -n base -c defaults conda
+### conda deactivate
+### conda clean --all
+### conda env remove -n lab
+### conda env create -f lab_enviornment.yml
+name: ve_iaa_cmdstanpy
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - anaconda
+  - arviz
+  - dill
+  - xarray
+  - pip
+  - pip:
+    - tmuxp
+    - cmdstanpy[all]
+
+prefix: /om/user/daeda/software/anaconda3/envs/ve_iaa_cmdstanpy

@@ -4,18 +4,24 @@
 # exit on error
 set -e
 
-TMUX_VERSION=3.2a # https://github.com/tmux/tmux/wiki
+### openmind specific modules
+module load openmind/gcc/11.1.0
+module load openmind/isl/0.23
+module load openmind/mpfr/4.1.0  openmind/mpc/1.2.1 
+module load openmind/make/4.3
+
 LIBEVENT_VERSION=2.1.12-stable # https://libevent.org/
-NCURSES_VERSION=6.2 # https://invisible-island.net/ncurses/announce.html#h2-release-notes
-CURL_VERSION=7.71.1 # https://curl.haxx.se/download.html
-GIT_VERSION=2.34.0 # https://git-scm.com/download/linux
+NCURSES_VERSION=6.3 # https://invisible-island.net/ncurses/announce.html#h2-release-notes
+CURL_VERSION=7.80.0 # https://curl.haxx.se/download.html
+GIT_VERSION=2.34.1 # https://git-scm.com/download/linux
 GIT_MIN_VERSION=2.17
+TMUX_VERSION=3.2a # https://github.com/tmux/tmux/wiki
 VIM_VERSION=8.2.1379
 ZSH_VERSION=5.8 # http://zsh.sourceforge.net/releases.html
 
-DEFAULT_INSTALL_TO=${ME_PATH:-$HOME/me}
+DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me}"
 read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
-INSTALL_TO=${INSTALL_TO:-$DEFAULT_INSTALL_TO}
+INSTALL_TO="${INSTALL_TO:-$DEFAULT_INSTALL_TO}"
 
 echo "Installing to: $INSTALL_TO"
 sleep 1
@@ -38,9 +44,9 @@ version_gt() {
 # libevent # (for tmux)
 ############
 if [ ! -d $INSTALL_TO/dependencies/libevent ]; then
-	wget https://github.com/libevent/libevent/releases/download/release-${LIBEVENT_VERSION}/libevent-${LIBEVENT_VERSION}.tar.gz
-	tar -xvzf libevent-${LIBEVENT_VERSION}.tar.gz
-	cd libevent-${LIBEVENT_VERSION}
+	wget "https://github.com/libevent/libevent/releases/download/release-${LIBEVENT_VERSION}/libevent-${LIBEVENT_VERSION}.tar.gz"
+	tar -xvzf "libevent-${LIBEVENT_VERSION}.tar.gz"
+	cd "libevent-${LIBEVENT_VERSION}"
 	./configure --prefix=$INSTALL_TO/dependencies/libevent --disable-shared
 	make install
 	cd ..
@@ -51,9 +57,9 @@ fi
 # ncurses  # (for tmux, zsh)
 ############
 if [ ! -d $INSTALL_TO/dependencies/ncurses ]; then
-	wget https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz
-	tar -xvzf ncurses-${NCURSES_VERSION}.tar.gz
-	cd ncurses-${NCURSES_VERSION}
+	wget "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz" --no-check-certificate
+	tar -xvzf "ncurses-${NCURSES_VERSION}.tar.gz"
+	cd "ncurses-${NCURSES_VERSION}"
 	./configure --prefix=$INSTALL_TO/dependencies/ncurses CXXFLAGS="-fPIC" CFLAGS="-fPIC"
 	make install
 	cd ..
@@ -65,9 +71,9 @@ fi
 # If curl is not already installled...
 which curl-config || sudo -n yum install -y curl-devel || \
 if [ ! -d $INSTALL_TO/dependencies/curl ]; then
-	wget http://curl.haxx.se/download/curl-${CURL_VERSION}.tar.gz
-	tar -xvf curl-${CURL_VERSION}.tar.gz
-	cd curl-${CURL_VERSION}
+	wget "http://curl.haxx.se/download/curl-${CURL_VERSION}.tar.gz"
+	tar -xvf "curl-${CURL_VERSION}.tar.gz"
+	cd "curl-${CURL_VERSION}"
 	./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl || (
 		cd ..
 		# might need to install openssl
@@ -79,7 +85,7 @@ if [ ! -d $INSTALL_TO/dependencies/curl ]; then
 			make install
 			cd ..
 		fi
-		cd curl-${CURL_VERSION}
+		cd "curl-${CURL_VERSION}"
 		./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl=$INSTALL_TO/dependencies/openssl
 	)
 	make install
@@ -98,9 +104,9 @@ if [ ! -d $INSTALL_TO/git ]; then
 	if [ $has_git ]; then
 		echo "Using already-installed git";
 	else
-		wget https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz
-		tar -xvf git-${GIT_VERSION}.tar.xz
-		cd git-${GIT_VERSION}
+		wget "https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" --no-check-certificate
+		tar -xvf "git-${GIT_VERSION}.tar.xz"
+		cd "git-${GIT_VERSION}"
 		if [ -d $INSTALL_TO/dependencies/curl ]; then
 		  PATH=$INSTALL_TO/dependencies/curl/bin:$PATH \
 		    ./configure --prefix=$INSTALL_TO/git --with-curl=$INSTALL_TO/dependencies/curl
@@ -117,9 +123,9 @@ path_extra="$INSTALL_TO/git/bin:$path_extra"
 #   tmux   #
 ############
 if [ ! -d $INSTALL_TO/tmux ]; then
-	wget https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz
-	tar xvzf tmux-${TMUX_VERSION}.tar.gz
-	cd tmux-${TMUX_VERSION}
+	wget "https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz"
+	tar xvzf "tmux-${TMUX_VERSION}.tar.gz"
+	cd "tmux-${TMUX_VERSION}"
 	CFLAGS="$includes" LDFLAGS="$libs" \
 	  ./configure --prefix=$INSTALL_TO/tmux 
 	CPPFLAGS="$includes" LDFLAGS="-static $libs" \
@@ -132,9 +138,9 @@ path_extra="$INSTALL_TO/tmux/bin:$path_extra"
 #   vim    #
 ############
 if [ ! -d $INSTALL_TO/vim ]; then
-	wget https://github.com/vim/vim/archive/v${VIM_VERSION}.tar.gz
-	tar -xvf v${VIM_VERSION}.tar.gz
-	cd vim-${VIM_VERSION}
+	wget "https://github.com/vim/vim/archive/v${VIM_VERSION}.tar.gz"
+	tar -xvf "v${VIM_VERSION}.tar.gz"
+	cd "vim-${VIM_VERSION}"
 	vim_cv_tgetent=zero LDFLAGS="-L$INSTALL_TO/dependencies/ncurses/lib -L$INSTALL_TO/dependencies/ncurses/bin" \
 	  ./configure --prefix=$INSTALL_TO/vim
 	make install
@@ -146,9 +152,9 @@ path_extra="$INSTALL_TO/vim/bin:$path_extra"
 #   zsh    #
 ############
 if [ ! -d $INSTALL_TO/zsh ]; then
-	wget https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download -O zsh-${ZSH_VERSION}.tar.xz
-	tar -xvf zsh-${ZSH_VERSION}.tar.xz
-	cd zsh-${ZSH_VERSION}
+	wget "https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download -O zsh-${ZSH_VERSION}.tar.xz"
+	tar -xvf "zsh-${ZSH_VERSION}.tar.xz"
+	cd "zsh-${ZSH_VERSION}"
 	CFLAGS="$includes" LDFLAGS="$libs" \
 	  ./configure --prefix=$INSTALL_TO/zsh
 	CPPFLAGS="$includes" LDFLAGS="-static $libs" \
@@ -199,7 +205,7 @@ for dotfilesrc in $(ls -a $INSTALL_TO/me/dotfiles); do
 		if [ -L $HOME/$dotfile ]; then ### is symbolic link
 			rm $HOME/$dotfile	
 		elif [ -f $HOME/$dotfile ]; then ### is file
-			mv $HOME/$dotfile $HOME/${dotfile}_$(date +"%F_%H.%M.%S")
+			mv $HOME/$dotfile "$HOME/${dotfile}_"$(date +"%F_%H.%M.%S")
 		fi
 		ln -s $INSTALL_TO/me/dotfiles/$dotfilesrc $HOME/$dotfile
 	else
@@ -233,7 +239,17 @@ fi
 if [ ! -d $HOME/.tmux/plugins/tpm ]; then
 	git clone https://github.com/tmux-plugins/tpm $HOME/.tmux/plugins/tpm
 fi
+# in case tmux is running
+tmux kill-server
+# start a server but don't attach to it
+tmux start-server
+# create a new session but don't attach to it either
+tmux new-session -d
+# install the plugins
 $HOME/.tmux/plugins/tpm/scripts/install_plugins.sh
+# killing the server is not required, I guess
+tmux kill-server
+
 
 # -----------------------------------------------------
 

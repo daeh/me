@@ -1,0 +1,22 @@
+### conda update -n base -c defaults conda
+### conda deactivate
+### conda clean --all
+### conda env remove -n lab
+### conda env create -f lab_enviornment.yml
+
+### conda search nipype --channel conda-forge
+
+name: ve_niconda
+channels:
+  - conda-forge
+dependencies:
+  - python = 3.8
+  # - anaconda
+  - nipype >= 1.6
+  - jupyterlab
+  - pip
+  - pip:
+    - tmuxp
+
+prefix: /om/user/daeda/software/anaconda3/envs/ve_niconda
+

@@ -1,0 +1,20 @@
+### conda update -n base -c defaults conda
+### conda deactivate
+### conda clean --all
+### conda env remove -n omlab
+### conda env create -f anaconda_omlab.yml
+name: omlab
+channels:
+  - conda-forge
+dependencies:
+  - python
+  # - anaconda
+  - jupyterlab
+  - autopep8
+  - numpy
+  - pandas
+  - pip
+  - pip:
+    - tmuxp
+
+prefix: /om/user/daeda/software/anaconda3/envs/omlab

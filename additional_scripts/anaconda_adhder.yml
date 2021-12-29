@@ -1,0 +1,19 @@
+### conda update -n base -c defaults conda
+### conda deactivate
+### conda clean --all
+### conda env remove -n lab
+### conda env create -f lab_enviornment.yml
+name: ve_adhder
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - anaconda
+  - dill
+  - feather-format
+  - arviz
+  - pip
+  - pip:
+    - tmuxp
+
+prefix: /om/user/daeda/software/anaconda3/envs/ve_adhder
