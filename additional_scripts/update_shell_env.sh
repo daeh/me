@@ -1,8 +1,16 @@
 source ~/.zshrc || exit
 
+
+echo "current zsh:"
 zsh --version
 echo "current tmux:"
 tmux -V
+
+tmux new -s updateconda
+##---
+interactlong
+
+###
 
 omz update
 
@@ -48,23 +56,31 @@ cd ~ || exit
 
 tb_conda
 
-conda clean --all
-
+conda clean --all --yes
+#
 conda update -n base -c defaults conda
+#===
 conda update -n base -c defaults python
 
-conda update -n omlab --all -c conda-forge
-conda update -n omlab -c conda-forge python
-conda update -n omlab -c conda-forge jupyterlab
+#===
 
+conda update -n omlab --all -c conda-forge
+#===
+conda update -n omlab -c conda-forge python
+#===
+conda update -n omlab -c conda-forge jupyterlab
+#===
 pip install --upgrade pip
 pip install --upgrade tmuxp
 
 #######
 
 env_iaa_cmdstan
+#
 conda update -n ve_iaa_pytorch --all -c pytorch -c conda-forge
+#===
 which pip
+#
 pip install --upgrade pip
 pip install --upgrade tmuxp
 
@@ -84,24 +100,28 @@ pip install --upgrade tmuxp
 # pip install --upgrade tmuxp
 # pip install --upgrade "cmdstanpy[all]"
 
-conda clean --all
+conda clean --all --yes
 
 
 #######
-node -v
+
+
 ##### https://johnpapa.net/node-and-npm-without-sudo/
 # Install Node.js from https://nodejs.org/en/download/
 #####
 
+node -v
+npm version
 npm list -g --depth=0
 npm outdated -g --depth=0
-npm outdated --prefix ~/.webppl --depth=0
 
 #
-npm version
-npm install -g npm
+
+npm install -g npm@latest
 #
 npm update -g jshint
+
+npm outdated --prefix ~/.webppl --depth=0
 npm update -g webppl
 npm install --prefix ~/.webppl webppl-json --force
 

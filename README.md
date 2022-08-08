@@ -4,7 +4,7 @@ To install:
 
 from local machine:
 
-`scp /Users/dae/coding/-GitRepos/me/setup.sh daeda@openmind7.mit.edu:/home/daeda/setup.sh`
+`scp ~/coding/-GitRepos/me/setup.sh daeda@openmind7.mit.edu:/home/daeda/setup.sh`
 
 from remote machine:
 
@@ -12,8 +12,3 @@ from remote machine:
 
 
 
-
-
-
-
-`## sh -c "$(wget -O- lbh.scripts.mit.edu/me.sh)"`

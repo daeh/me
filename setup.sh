@@ -49,7 +49,7 @@ if [ ! -d $INSTALL_TO/dependencies/libevent ]; then
 	cd "libevent-${LIBEVENT_VERSION}"
 	./configure --prefix=$INSTALL_TO/dependencies/libevent --disable-shared
 	make install
-	cd ..
+	cd $TEMP_DIR
 fi
 
 
@@ -62,7 +62,7 @@ if [ ! -d $INSTALL_TO/dependencies/ncurses ]; then
 	cd "ncurses-${NCURSES_VERSION}"
 	./configure --prefix=$INSTALL_TO/dependencies/ncurses CXXFLAGS="-fPIC" CFLAGS="-fPIC"
 	make install
-	cd ..
+	cd $TEMP_DIR
 fi
 
 ############
@@ -75,7 +75,7 @@ if [ ! -d $INSTALL_TO/dependencies/curl ]; then
 	tar -xvf "curl-${CURL_VERSION}.tar.gz"
 	cd "curl-${CURL_VERSION}"
 	./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl || (
-		cd ..
+		cd $TEMP_DIR
 		# might need to install openssl
 		if [ ! -d $INSTALL_TO/dependencies/openssl ]; then
 			wget https://www.openssl.org/source/openssl-1.1.1b.tar.gz
@@ -83,13 +83,13 @@ if [ ! -d $INSTALL_TO/dependencies/curl ]; then
 			cd openssl-1.1.1b
 			./config --prefix=$INSTALL_TO/dependencies/openssl
 			make install
-			cd ..
+			cd $TEMP_DIR
 		fi
 		cd "curl-${CURL_VERSION}"
 		./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl=$INSTALL_TO/dependencies/openssl
 	)
 	make install
-	cd ..
+	cd $TEMP_DIR
 fi
 
 ## ---------------------- Packages ------------------------
@@ -114,7 +114,7 @@ if [ ! -d $INSTALL_TO/git ]; then
 		  ./configure --prefix=$INSTALL_TO/git --with-curl
 		fi
 		make install
-		cd ..
+		cd $TEMP_DIR
 	fi
 fi
 path_extra="$INSTALL_TO/git/bin:$path_extra"
@@ -130,7 +130,7 @@ if [ ! -d $INSTALL_TO/tmux ]; then
 	  ./configure --prefix=$INSTALL_TO/tmux 
 	CPPFLAGS="$includes" LDFLAGS="-static $libs" \
 	  make install
-	cd ..
+	cd $TEMP_DIR
 fi
 path_extra="$INSTALL_TO/tmux/bin:$path_extra"
 
@@ -144,7 +144,7 @@ if [ ! -d $INSTALL_TO/vim ]; then
 	vim_cv_tgetent=zero LDFLAGS="-L$INSTALL_TO/dependencies/ncurses/lib -L$INSTALL_TO/dependencies/ncurses/bin" \
 	  ./configure --prefix=$INSTALL_TO/vim
 	make install
-	cd ..
+	cd $TEMP_DIR
 fi
 path_extra="$INSTALL_TO/vim/bin:$path_extra"
 
@@ -159,10 +159,21 @@ if [ ! -d $INSTALL_TO/zsh ]; then
 	  ./configure --prefix=$INSTALL_TO/zsh
 	CPPFLAGS="$includes" LDFLAGS="-static $libs" \
 	  make install
-	cd ..
+	cd $TEMP_DIR
 fi
 path_extra="$INSTALL_TO/zsh/bin:$path_extra"
 
+############
+#  rmate   #
+############
+if [ ! -f $INSTALL_TO/bin/rmate ]; then
+	cd $INSTALL_TO
+	mkdir -p "${INSTALL_TO}/bin/"
+	curl -Lo "${INSTALL_TO}/bin/rmate" "https://raw.githubusercontent.com/textmate/rmate/master/bin/rmate"
+	chmod a+x "${INSTALL_TO}/bin/rmate"
+	cd $TEMP_DIR
+fi
+path_extra="${INSTALL_TO}/bin:$path_extra"
 
 ############
 #freesurfer#
