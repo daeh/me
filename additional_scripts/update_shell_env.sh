@@ -1,14 +1,15 @@
 source ~/.zshrc || exit
 
 
-echo "current zsh:"
+print "current zsh:"
 zsh --version
-echo "current tmux:"
+print "current tmux:"
 tmux -V
 
 tmux new -s updateconda
 ##---
 interactlong
+# srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 --pty zsh
 
 ###
 
@@ -26,7 +27,7 @@ git pull --rebase --stat origin master
 cd ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k || exit
 git -C ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k pull
 
-echo "done"
+print "done"
 
 cd ~ || exit
 
