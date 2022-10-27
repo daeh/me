@@ -12,12 +12,13 @@ module load openmind/make/4.3
 
 LIBEVENT_VERSION=2.1.12-stable # https://libevent.org/
 NCURSES_VERSION=6.3 # https://invisible-island.net/ncurses/announce.html#h2-release-notes
-CURL_VERSION=7.80.0 # https://curl.haxx.se/download.html
-GIT_VERSION=2.34.1 # https://git-scm.com/download/linux
+CURL_VERSION=7.86.0 # https://curl.haxx.se/download.html
+OPENSSL_VERSION=3.0.5 # https://www.openssl.org/source/
+GIT_VERSION=2.38.1 # https://git-scm.com/download/linux
 GIT_MIN_VERSION=2.17
-TMUX_VERSION=3.2a # https://github.com/tmux/tmux/wiki
-VIM_VERSION=8.2.1379
-ZSH_VERSION=5.8 # http://zsh.sourceforge.net/releases.html
+TMUX_VERSION=3.3a # https://github.com/tmux/tmux/wiki
+VIM_VERSION=9.0.0814 # https://github.com/vim/vim/tags
+ZSH_VERSION=5.9 # http://zsh.sourceforge.net/releases.html
 
 DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me}"
 read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
@@ -29,6 +30,8 @@ sleep 1
 TEMP_DIR=$INSTALL_TO/temp_install
 mkdir -p $INSTALL_TO $TEMP_DIR $INSTALL_TO/dependencies
 cd $TEMP_DIR
+
+path_extra=''
 
 # Make sure we have gcc
 which gcc || sudo -n yum groupinstall -y "Development Tools" || ( echo no gcc; exit 1 )
@@ -71,16 +74,16 @@ fi
 # If curl is not already installled...
 which curl-config || sudo -n yum install -y curl-devel || \
 if [ ! -d $INSTALL_TO/dependencies/curl ]; then
-	wget "http://curl.haxx.se/download/curl-${CURL_VERSION}.tar.gz"
+	wget --no-check-certificate "https://curl.se/download/curl-${CURL_VERSION}.tar.gz"
 	tar -xvf "curl-${CURL_VERSION}.tar.gz"
 	cd "curl-${CURL_VERSION}"
 	./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl || (
 		cd $TEMP_DIR
 		# might need to install openssl
 		if [ ! -d $INSTALL_TO/dependencies/openssl ]; then
-			wget https://www.openssl.org/source/openssl-1.1.1b.tar.gz
-			tar -xvf openssl-1.1.1b.tar.gz
-			cd openssl-1.1.1b
+			wget "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
+			tar -xvf "openssl-${OPENSSL_VERSION}.tar.gz"
+			cd "openssl-${OPENSSL_VERSION}"
 			./config --prefix=$INSTALL_TO/dependencies/openssl
 			make install
 			cd $TEMP_DIR
@@ -152,7 +155,7 @@ path_extra="$INSTALL_TO/vim/bin:$path_extra"
 #   zsh    #
 ############
 if [ ! -d $INSTALL_TO/zsh ]; then
-	wget "https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download -O zsh-${ZSH_VERSION}.tar.xz"
+	wget --no-check-certificate -O "zsh-${ZSH_VERSION}.tar.xz" "https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download"
 	tar -xvf "zsh-${ZSH_VERSION}.tar.xz"
 	cd "zsh-${ZSH_VERSION}"
 	CFLAGS="$includes" LDFLAGS="$libs" \
