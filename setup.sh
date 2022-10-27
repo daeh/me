@@ -29,7 +29,7 @@ sleep 1
 
 TEMP_DIR=$INSTALL_TO/temp_install
 mkdir -p $INSTALL_TO $TEMP_DIR $INSTALL_TO/dependencies
-cd $TEMP_DIR
+cd "${TEMP_DIR}" || exit
 
 path_extra=''
 
@@ -47,12 +47,13 @@ version_gt() {
 # libevent # (for tmux)
 ############
 if [ ! -d $INSTALL_TO/dependencies/libevent ]; then
+	cd "${TEMP_DIR}"
 	wget "https://github.com/libevent/libevent/releases/download/release-${LIBEVENT_VERSION}/libevent-${LIBEVENT_VERSION}.tar.gz"
 	tar -xvzf "libevent-${LIBEVENT_VERSION}.tar.gz"
 	cd "libevent-${LIBEVENT_VERSION}"
-	./configure --prefix=$INSTALL_TO/dependencies/libevent --disable-shared
+	./configure --prefix="${INSTALL_TO}/dependencies/libevent" --disable-shared
 	make install
-	cd $TEMP_DIR
+	cd "${TEMP_DIR}"
 fi
 
 
@@ -60,12 +61,13 @@ fi
 # ncurses  # (for tmux, zsh)
 ############
 if [ ! -d $INSTALL_TO/dependencies/ncurses ]; then
-	wget "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz" --no-check-certificate
+	cd "${TEMP_DIR}"
+	wget --no-check-certificate "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz"
 	tar -xvzf "ncurses-${NCURSES_VERSION}.tar.gz"
 	cd "ncurses-${NCURSES_VERSION}"
-	./configure --prefix=$INSTALL_TO/dependencies/ncurses CXXFLAGS="-fPIC" CFLAGS="-fPIC"
+	./configure --prefix="${INSTALL_TO}/dependencies/ncurses" CXXFLAGS="-fPIC" CFLAGS="-fPIC"
 	make install
-	cd $TEMP_DIR
+	cd "${TEMP_DIR}"
 fi
 
 ############
@@ -74,30 +76,31 @@ fi
 # If curl is not already installled...
 which curl-config || sudo -n yum install -y curl-devel || \
 if [ ! -d $INSTALL_TO/dependencies/curl ]; then
+	cd "${TEMP_DIR}"
 	wget --no-check-certificate "https://curl.se/download/curl-${CURL_VERSION}.tar.gz"
 	tar -xvf "curl-${CURL_VERSION}.tar.gz"
 	cd "curl-${CURL_VERSION}"
 	./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl || (
-		cd $TEMP_DIR
+		cd "${TEMP_DIR}"
 		# might need to install openssl
-		if [ ! -d $INSTALL_TO/dependencies/openssl ]; then
+		if [ ! -d "${INSTALL_TO}/dependencies/openssl" ]; then
 			wget "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
 			tar -xvf "openssl-${OPENSSL_VERSION}.tar.gz"
 			cd "openssl-${OPENSSL_VERSION}"
-			./config --prefix=$INSTALL_TO/dependencies/openssl
+			./config --prefix="${INSTALL_TO}/dependencies/openssl"
 			make install
-			cd $TEMP_DIR
+			cd "${TEMP_DIR}"
 		fi
 		cd "curl-${CURL_VERSION}"
-		./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl=$INSTALL_TO/dependencies/openssl
+		./configure --prefix="${INSTALL_TO}/dependencies/curl" -enable-shared --with-ssl="${INSTALL_TO}/dependencies/openssl"
 	)
 	make install
-	cd $TEMP_DIR
+	cd "${TEMP_DIR}"
 fi
 
 ## ---------------------- Packages ------------------------
-includes="-I$INSTALL_TO/dependencies/libevent/include -I$INSTALL_TO/dependencies/ncurses/include -I$INSTALL_TO/dependencies/ncurses/include/ncurses"
-libs="-L$INSTALL_TO/dependencies/libevent/lib -L$INSTALL_TO/dependencies/ncurses/lib -L$INSTALL_TO/dependencies/libevent/include -L$INSTALL_TO/dependencies/ncurses/include -L$INSTALL_TO/dependencies/ncurses/include/ncurses"
+includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncurses"
+libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib -L${INSTALL_TO}/dependencies/libevent/include -L${INSTALL_TO}/dependencies/ncurses/include -L${INSTALL_TO}/dependencies/ncurses/include/ncurses"
 
 ############
 #   git    #
@@ -107,74 +110,78 @@ if [ ! -d $INSTALL_TO/git ]; then
 	if [ $has_git ]; then
 		echo "Using already-installed git";
 	else
-		wget "https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" --no-check-certificate
+		cd "${TEMP_DIR}"
+		wget --no-check-certificate "https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz"
 		tar -xvf "git-${GIT_VERSION}.tar.xz"
 		cd "git-${GIT_VERSION}"
 		if [ -d $INSTALL_TO/dependencies/curl ]; then
 		  PATH=$INSTALL_TO/dependencies/curl/bin:$PATH \
-		    ./configure --prefix=$INSTALL_TO/git --with-curl=$INSTALL_TO/dependencies/curl
+		    ./configure --prefix="${INSTALL_TO}/git" --with-curl=$INSTALL_TO/dependencies/curl
 		else
-		  ./configure --prefix=$INSTALL_TO/git --with-curl
+		  ./configure --prefix="${INSTALL_TO}/git" --with-curl
 		fi
 		make install
-		cd $TEMP_DIR
+		cd "${TEMP_DIR}"
 	fi
 fi
-path_extra="$INSTALL_TO/git/bin:$path_extra"
+path_extra="${INSTALL_TO}/git/bin:$path_extra"
 
 ############
 #   tmux   #
 ############
 if [ ! -d $INSTALL_TO/tmux ]; then
+	cd "${TEMP_DIR}"
 	wget "https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz"
 	tar xvzf "tmux-${TMUX_VERSION}.tar.gz"
 	cd "tmux-${TMUX_VERSION}"
 	CFLAGS="$includes" LDFLAGS="$libs" \
-	  ./configure --prefix=$INSTALL_TO/tmux 
+	  ./configure --prefix="${INSTALL_TO}/tmux"
 	CPPFLAGS="$includes" LDFLAGS="-static $libs" \
 	  make install
-	cd $TEMP_DIR
+	cd "${TEMP_DIR}"
 fi
-path_extra="$INSTALL_TO/tmux/bin:$path_extra"
+path_extra="${INSTALL_TO}/tmux/bin:$path_extra"
 
 ############
 #   vim    #
 ############
 if [ ! -d $INSTALL_TO/vim ]; then
+	cd "${TEMP_DIR}"
 	wget "https://github.com/vim/vim/archive/v${VIM_VERSION}.tar.gz"
 	tar -xvf "v${VIM_VERSION}.tar.gz"
 	cd "vim-${VIM_VERSION}"
 	vim_cv_tgetent=zero LDFLAGS="-L$INSTALL_TO/dependencies/ncurses/lib -L$INSTALL_TO/dependencies/ncurses/bin" \
-	  ./configure --prefix=$INSTALL_TO/vim
+	  ./configure --prefix="${INSTALL_TO}/vim"
 	make install
-	cd $TEMP_DIR
+	cd "${TEMP_DIR}"
 fi
-path_extra="$INSTALL_TO/vim/bin:$path_extra"
+path_extra="${INSTALL_TO}/vim/bin:$path_extra"
 
 ############
 #   zsh    #
 ############
 if [ ! -d $INSTALL_TO/zsh ]; then
+	cd "${TEMP_DIR}"
 	wget --no-check-certificate -O "zsh-${ZSH_VERSION}.tar.xz" "https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download"
 	tar -xvf "zsh-${ZSH_VERSION}.tar.xz"
 	cd "zsh-${ZSH_VERSION}"
 	CFLAGS="$includes" LDFLAGS="$libs" \
-	  ./configure --prefix=$INSTALL_TO/zsh
+	  ./configure --prefix="${INSTALL_TO}/zsh"
 	CPPFLAGS="$includes" LDFLAGS="-static $libs" \
 	  make install
-	cd $TEMP_DIR
+	cd "${TEMP_DIR}"
 fi
-path_extra="$INSTALL_TO/zsh/bin:$path_extra"
+path_extra="${INSTALL_TO}/zsh/bin:$path_extra"
 
 ############
 #  rmate   #
 ############
 if [ ! -f $INSTALL_TO/bin/rmate ]; then
-	cd $INSTALL_TO
+	cd "${INSTALL_TO}"
 	mkdir -p "${INSTALL_TO}/bin/"
 	curl -Lo "${INSTALL_TO}/bin/rmate" "https://raw.githubusercontent.com/textmate/rmate/master/bin/rmate"
 	chmod a+x "${INSTALL_TO}/bin/rmate"
-	cd $TEMP_DIR
+	cd "${TEMP_DIR}"
 fi
 path_extra="${INSTALL_TO}/bin:$path_extra"
 
@@ -203,9 +210,9 @@ export PATH=$path_extra:$PATH
 
 # Dotfiles
 if [ ! -d $INSTALL_TO/me ]; then
-	git clone https://github.com/daeh/me.git $INSTALL_TO/me
+	git clone "https://github.com/daeh/me.git" "${INSTALL_TO}/me"
 fi
-cd $INSTALL_TO/me
+cd "${INSTALL_TO}/me"
 git pull
 
 # for dotfile in $(ls -a $INSTALL_TO/me/dotfiles | grep [^.]); do
@@ -217,11 +224,11 @@ for dotfilesrc in $(ls -a $INSTALL_TO/me/dotfiles); do
 		echo "Addding dotfile: ${dotfile}"
 
 		if [ -L $HOME/$dotfile ]; then ### is symbolic link
-			rm $HOME/$dotfile	
+			rm "$HOME/$dotfile"
 		elif [ -f $HOME/$dotfile ]; then ### is file
-			mv $HOME/$dotfile "$HOME/${dotfile}_"$(date +"%F_%H.%M.%S")
+			mv "$HOME/$dotfile" "$HOME/${dotfile}_"$(date +"%F_%H.%M.%S")
 		fi
-		ln -s $INSTALL_TO/me/dotfiles/$dotfilesrc $HOME/$dotfile
+		ln -s "$INSTALL_TO/me/dotfiles/$dotfilesrc" "$HOME/$dotfile"
 	else
 		echo "Skipping dotfilesrc: ${dotfilesrc}"
     fi 
@@ -231,7 +238,7 @@ done
 
 # Oh-my-zsh
 if [ ! -d $HOME/.oh-my-zsh ]; then
-	PATH=$INSTALL_TO/zsh/bin:$PATH RUNZSH=no CHSH=no sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
+	PATH=${INSTALL_TO}/zsh/bin:$PATH RUNZSH=no CHSH=no sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
 fi
 
 # Zsh plugins
@@ -240,18 +247,18 @@ zshcustom=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
 # 	wget http://raw.github.com/caiogondim/bullet-train-oh-my-zsh-theme/master/bullet-train.zsh-theme -O ${zshcustom}/bullet-train.zsh-theme
 # fi
 if [ ! -d ${zshcustom}/themes/powerlevel10k ]; then
-	git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${zshcustom}/themes/powerlevel10k
+	git clone --depth=1 "https://github.com/romkatv/powerlevel10k.git" "${zshcustom}/themes/powerlevel10k"
 fi
 if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ]; then
-	git clone https://github.com/zsh-users/zsh-autosuggestions ${zshcustom}/plugins/zsh-autosuggestions
+	git clone "https://github.com/zsh-users/zsh-autosuggestions" "${zshcustom}/plugins/zsh-autosuggestions"
 fi
 if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting ]; then
-	git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${zshcustom}/plugins/zsh-syntax-highlighting
+	git clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${zshcustom}/plugins/zsh-syntax-highlighting"
 fi
 
 # tmux plugin manager
 if [ ! -d $HOME/.tmux/plugins/tpm ]; then
-	git clone https://github.com/tmux-plugins/tpm $HOME/.tmux/plugins/tpm
+	git clone "https://github.com/tmux-plugins/tpm" "$HOME/.tmux/plugins/tpm"
 fi
 # in case tmux is running
 tmux kill-server
@@ -268,18 +275,18 @@ tmux kill-server
 # -----------------------------------------------------
 
 # cleanup
-rm -rf $TEMP_DIR
+rm -rf "${TEMP_DIR}"
 
 # Create .merc file
-echo "export PATH=$path_extra:\$PATH" > $HOME/.merc
-echo "export DEFAULT_TMUX_SHELL=$INSTALL_TO/zsh/bin/zsh" >> $HOME/.merc
-echo "export ME_PATH=$INSTALL_TO" >> $HOME/.merc
-echo "source \$HOME/.me.conf" >> $HOME/.merc
-grep "source \$HOME/.merc" $HOME/.bash_profile || echo "source \$HOME/.merc" >> $HOME/.bash_profile || 
-grep "source \$HOME/.merc" $HOME/.bashrc || echo "source \$HOME/.merc" >> $HOME/.bashrc
+echo "export PATH=$path_extra:\$PATH" > "$HOME/.merc"
+echo "export DEFAULT_TMUX_SHELL=$INSTALL_TO/zsh/bin/zsh" >> "$HOME/.merc"
+echo "export ME_PATH=$INSTALL_TO" >> "$HOME/.merc"
+echo "source \$HOME/.me.conf" >> "$HOME/.merc"
+grep "source \$HOME/.merc" "$HOME/.bash_profile" || echo "source \$HOME/.merc" >> "$HOME/.bash_profile" || 
+grep "source \$HOME/.merc" "$HOME/.bashrc" || echo "source \$HOME/.merc" >> "$HOME/.bashrc"
 
 ### for some reason, I need this in my .bashrc :
 # export PATH=$HOME/local/bin:$PATH
 # having source $HOME/.merc in .bash_profile alone does not work, having that and `source $HOME/.merc` in $HOME/.bashrc does not work.
 
-echo Installled to: $INSTALL_TO
+echo "Installled to: $INSTALL_TO"
