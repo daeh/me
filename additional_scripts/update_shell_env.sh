@@ -13,6 +13,12 @@ interactlong
 
 ###
 
+cd "${HOME}/me/me" || exit
+git fetch origin master
+git merge origin/master
+
+###
+
 omz update
 
 cd ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting || exit
