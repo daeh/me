@@ -12,3 +12,20 @@ from remote machine:
 
 
 
+---
+
+
+
+# To update
+
+
+
+git pull repo to directory ~/me/me
+
+exit tmux
+
+exit zsh
+
+remove everything in `~/me` that needs to be updated (leave the `me` dir)
+
+step through `setup.sh`
