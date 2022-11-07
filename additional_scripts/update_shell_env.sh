@@ -16,6 +16,10 @@ interactlong
 cd "${HOME}/me/me" || exit
 git fetch origin master
 git merge origin/master
+###
+# git pull
+
+cd "${HOME}" || exit
 
 ###
 
