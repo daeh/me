@@ -77,6 +77,9 @@ plugins=(
 )
 # autoload -U compinit && compinit ### for zsh-completions
 
+### change location for .zcompdump-* files created by `compinit` mechanism of zsh
+export ZSH_COMPDUMP=$ZSH/cache/.zcompdump-$HOST
+
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
