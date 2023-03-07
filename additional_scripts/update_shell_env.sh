@@ -39,7 +39,7 @@ git -C ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k pull
 
 print "done"
 
-cd ~ || exit
+cd "${HOME}" || exit
 
 ################### CmdStan
 CMDSTAN_VERSION="2.28.2"

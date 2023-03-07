@@ -11,13 +11,13 @@ module load openmind/mpfr/4.1.0  openmind/mpc/1.2.1
 module load openmind/make/4.3
 
 LIBEVENT_VERSION=2.1.12-stable # https://libevent.org/
-NCURSES_VERSION=6.3 # https://invisible-island.net/ncurses/announce.html#h2-release-notes
-CURL_VERSION=7.86.0 # https://curl.haxx.se/download.html
-OPENSSL_VERSION=3.0.5 # https://www.openssl.org/source/
-GIT_VERSION=2.38.1 # https://git-scm.com/download/linux
+NCURSES_VERSION=6.4 # https://invisible-island.net/ncurses/announce.html#h2-release-notes
+CURL_VERSION=7.88.1 # https://curl.haxx.se/download.html
+OPENSSL_VERSION=3.0.8 # https://www.openssl.org/source/
+GIT_VERSION=2.39.2 # https://git-scm.com/download/linux
 GIT_MIN_VERSION=2.17
 TMUX_VERSION=3.3a # https://github.com/tmux/tmux/wiki
-VIM_VERSION=9.0.0814 # https://github.com/vim/vim/tags
+VIM_VERSION=9.0.1388 # https://github.com/vim/vim/tags
 ZSH_VERSION=5.9 # http://zsh.sourceforge.net/releases.html
 
 DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me}"

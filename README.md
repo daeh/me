@@ -22,6 +22,13 @@ from remote machine:
 
 git pull repo to directory ~/me/me
 
+```sh
+cd ${HOME}/me/me || exit
+git pull
+```
+
+
+
 exit tmux
 
 exit zsh
