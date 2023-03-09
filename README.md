@@ -29,6 +29,8 @@ git pull
 
 
 
+exit mounted drive
+
 exit tmux
 
 exit zsh
