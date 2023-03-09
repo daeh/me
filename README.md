@@ -33,6 +33,8 @@ exit mounted drive
 
 exit tmux
 
+`tmux kill-server`
+
 exit zsh
 
 remove everything in `~/me` that needs to be updated (leave the `me` dir)

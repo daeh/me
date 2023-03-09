@@ -116,6 +116,14 @@ conda clean --all --yes
 
 #######
 
+tb_latex
+
+tlmgr update --self
+tlmgr update --list
+tlmgr update --all
+# tlmgr install missing_package
+
+#######
 
 ##### https://johnpapa.net/node-and-npm-without-sudo/
 # Install Node.js from https://nodejs.org/en/download/
