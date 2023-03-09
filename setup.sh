@@ -5,6 +5,7 @@
 set -e
 
 ### openmind specific modules
+source /usr/share/Modules/init/bash
 module load openmind/gcc/11.1.0
 module load openmind/isl/0.23
 module load openmind/mpfr/4.1.0  openmind/mpc/1.2.1 
@@ -38,7 +39,7 @@ which gcc || sudo -n yum groupinstall -y "Development Tools" || ( echo no gcc; e
 
 # compare version numbers
 version_gt() {
-  test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1";
+	test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1";
 }
 
 # ---------------------- Dependencies ------------------------
@@ -115,10 +116,10 @@ if [ ! -d $INSTALL_TO/git ]; then
 		tar -xvf "git-${GIT_VERSION}.tar.xz"
 		cd "git-${GIT_VERSION}"
 		if [ -d $INSTALL_TO/dependencies/curl ]; then
-		  PATH=$INSTALL_TO/dependencies/curl/bin:$PATH \
-		    ./configure --prefix="${INSTALL_TO}/git" --with-curl=$INSTALL_TO/dependencies/curl
+			PATH=$INSTALL_TO/dependencies/curl/bin:$PATH \
+			./configure --prefix="${INSTALL_TO}/git" --with-curl=$INSTALL_TO/dependencies/curl
 		else
-		  ./configure --prefix="${INSTALL_TO}/git" --with-curl
+			./configure --prefix="${INSTALL_TO}/git" --with-curl
 		fi
 		make install
 		cd "${TEMP_DIR}"
@@ -135,9 +136,9 @@ if [ ! -d $INSTALL_TO/tmux ]; then
 	tar xvzf "tmux-${TMUX_VERSION}.tar.gz"
 	cd "tmux-${TMUX_VERSION}"
 	CFLAGS="$includes" LDFLAGS="$libs" \
-	  ./configure --prefix="${INSTALL_TO}/tmux"
+		./configure --prefix="${INSTALL_TO}/tmux"
 	CPPFLAGS="$includes" LDFLAGS="-static $libs" \
-	  make install
+		make install
 	cd "${TEMP_DIR}"
 fi
 path_extra="${INSTALL_TO}/tmux/bin:$path_extra"
@@ -151,7 +152,7 @@ if [ ! -d $INSTALL_TO/vim ]; then
 	tar -xvf "v${VIM_VERSION}.tar.gz"
 	cd "vim-${VIM_VERSION}"
 	vim_cv_tgetent=zero LDFLAGS="-L$INSTALL_TO/dependencies/ncurses/lib -L$INSTALL_TO/dependencies/ncurses/bin" \
-	  ./configure --prefix="${INSTALL_TO}/vim"
+		./configure --prefix="${INSTALL_TO}/vim"
 	make install
 	cd "${TEMP_DIR}"
 fi
@@ -166,9 +167,9 @@ if [ ! -d $INSTALL_TO/zsh ]; then
 	tar -xvf "zsh-${ZSH_VERSION}.tar.xz"
 	cd "zsh-${ZSH_VERSION}"
 	CFLAGS="$includes" LDFLAGS="$libs" \
-	  ./configure --prefix="${INSTALL_TO}/zsh"
+		./configure --prefix="${INSTALL_TO}/zsh"
 	CPPFLAGS="$includes" LDFLAGS="-static $libs" \
-	  make install
+		make install
 	cd "${TEMP_DIR}"
 fi
 path_extra="${INSTALL_TO}/zsh/bin:$path_extra"
@@ -176,14 +177,71 @@ path_extra="${INSTALL_TO}/zsh/bin:$path_extra"
 ############
 #  rmate   #
 ############
-if [ ! -f $INSTALL_TO/bin/rmate ]; then
+if [ ! -f $INSTALL_TO/rmate/bin ]; then
 	cd "${INSTALL_TO}"
-	mkdir -p "${INSTALL_TO}/bin/"
-	curl -Lo "${INSTALL_TO}/bin/rmate" "https://raw.githubusercontent.com/textmate/rmate/master/bin/rmate"
-	chmod a+x "${INSTALL_TO}/bin/rmate"
+	mkdir -p "${INSTALL_TO}/rmate/bin/"
+	curl -Lo "${INSTALL_TO}/rmate/bin/rmate" "https://raw.githubusercontent.com/textmate/rmate/master/bin/rmate"
+	chmod a+x "${INSTALL_TO}/rmate/bin/rmate"
 	cd "${TEMP_DIR}"
 fi
-path_extra="${INSTALL_TO}/bin:$path_extra"
+# path_extra="${INSTALL_TO}/rmate/bin:$path_extra"
+
+
+############
+# latex
+############
+if [ -d /om2/user/daeda/software ]; then
+	if [ ! -d /om2/user/daeda/software/texlive ]; then
+		
+		cd "${TEMP_DIR}"
+		wget --no-check-certificate "https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz"
+		zcat install-tl-unx.tar.gz | tar xf -
+		cd install-tl-*
+
+# mkdir "${INSTALL_TO}/texlive"
+# mkdir "${HOME}/texlive-config"
+#D
+# <1> TEXDIR:         /om2/user/daeda/software/texlive
+# <5> TEXMFVAR:       /home/daeda/texlive-config/.texlive/texmf-var
+# <6> TEXMFCONFIG:    /home/daeda/texlive-config/.texlive/texmf-config
+# <7> TEXMFHOME:      /home/daeda/texlive-config/texmf
+#
+# <O> options:
+#  [X] use letter size instead of A4 by default
+
+cat > texlive.profile << EOL
+selected_scheme scheme-full
+TEXDIR /om2/user/daeda/software/texlive
+TEXMFCONFIG /home/daeda/texlive-config/.texlive/texmf-config
+TEXMFHOME /home/daeda/texlive-config/texmf
+TEXMFLOCAL /om2/user/daeda/software/texlive/texmf-local
+TEXMFSYSCONFIG /om2/user/daeda/software/texlive/texmf-config
+TEXMFSYSVAR /om2/user/daeda/software/texlive/texmf-var
+TEXMFVAR /home/daeda/texlive-config/.texlive/texmf-var
+binary_x86_64-linux 1
+instopt_adjustpath 0
+instopt_adjustrepo 1
+instopt_letter 1
+instopt_portable 0
+instopt_write18_restricted 1
+tlpdbopt_autobackup 1
+tlpdbopt_backupdir tlpkg/backups
+tlpdbopt_create_formats 1
+tlpdbopt_desktop_integration 1
+tlpdbopt_file_assocs 1
+tlpdbopt_generate_updmap 0
+tlpdbopt_install_docfiles 1
+tlpdbopt_install_srcfiles 1
+tlpdbopt_post_code 1
+tlpdbopt_sys_bin /usr/local/bin
+tlpdbopt_sys_info /usr/local/share/info
+tlpdbopt_sys_man /usr/local/share/man
+tlpdbopt_w32_multi_user 1
+EOL
+
+		perl ./install-tl --profile texlive.profile
+	fi
+fi
 
 ############
 #freesurfer#
@@ -218,8 +276,8 @@ git pull
 # for dotfile in $(ls -a $INSTALL_TO/me/dotfiles | grep [^.]); do
 for dotfilesrc in $(ls -a $INSTALL_TO/me/dotfiles); do
 
-    # if [ ${#dotfile} -ge 3 ]; then ### skip . and ..
-    if [[ $dotfilesrc != .* ]]; then ### skip ., .., .DS_*
+	# if [ ${#dotfile} -ge 3 ]; then ### skip . and ..
+	if [[ $dotfilesrc != .* ]]; then ### skip ., .., .DS_*
 		dotfile=".${dotfilesrc}"
 		echo "Addding dotfile: ${dotfile}"
 
@@ -231,7 +289,7 @@ for dotfilesrc in $(ls -a $INSTALL_TO/me/dotfiles); do
 		ln -s "$INSTALL_TO/me/dotfiles/$dotfilesrc" "$HOME/$dotfile"
 	else
 		echo "Skipping dotfilesrc: ${dotfilesrc}"
-    fi 
+	fi 
 
 done
 
@@ -281,7 +339,7 @@ rm -rf "${TEMP_DIR}"
 echo "export PATH=$path_extra:\$PATH" > "$HOME/.merc"
 echo "export DEFAULT_TMUX_SHELL=$INSTALL_TO/zsh/bin/zsh" >> "$HOME/.merc"
 echo "export ME_PATH=$INSTALL_TO" >> "$HOME/.merc"
-echo "source \$HOME/.me.conf" >> "$HOME/.merc"
+# echo "source \$HOME/.me.conf" >> "$HOME/.merc"
 grep "source \$HOME/.merc" "$HOME/.bash_profile" || echo "source \$HOME/.merc" >> "$HOME/.bash_profile" || 
 grep "source \$HOME/.merc" "$HOME/.bashrc" || echo "source \$HOME/.merc" >> "$HOME/.bashrc"
 
