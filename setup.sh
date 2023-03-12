@@ -196,7 +196,8 @@ if [ -d /om2/user/daeda/software ]; then
 		cd "${TEMP_DIR}"
 		wget --no-check-certificate "https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz"
 		zcat install-tl-unx.tar.gz | tar xf -
-		cd install-tl-*
+		# cd install-tl-*
+		cd $(find . -maxdepth 1 -type d -name 'install-tl-*' -print -quit)
 
 # mkdir "${INSTALL_TO}/texlive"
 # mkdir "${HOME}/texlive-config"
@@ -210,6 +211,7 @@ if [ -d /om2/user/daeda/software ]; then
 #  [X] use letter size instead of A4 by default
 
 cat > texlive.profile << EOL
+# selected_scheme scheme-small
 selected_scheme scheme-full
 TEXDIR /om2/user/daeda/software/texlive
 TEXMFCONFIG /home/daeda/texlive-config/.texlive/texmf-config

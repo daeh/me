@@ -29,13 +29,16 @@ git pull
 
 
 
-exit mounted drive
+(exit mounted drives)
 
 exit tmux
 
 `tmux kill-server`
 
 exit zsh
+
+`exec bash`
+`ps aux | grep zsh`
 
 remove everything in `~/me` that needs to be updated (leave the `me` dir)
 
