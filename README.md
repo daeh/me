@@ -27,6 +27,12 @@ cd ${HOME}/me/me || exit
 git pull
 ```
 
+or if local changes need to be overwritten
+```sh
+git fetch origin
+git reset --hard origin/master
+```
+
 
 
 (exit mounted drives)
