@@ -6,7 +6,8 @@ set -e
 
 ### openmind specific modules
 source /usr/share/Modules/init/bash
-module load openmind/gcc/11.1.0
+module load openmind8/gcc/12.2.0
+# module load openmind/gcc/11.1.0
 module load openmind/isl/0.23
 module load openmind/mpfr/4.1.0  openmind/mpc/1.2.1 
 module load openmind/make/4.3
