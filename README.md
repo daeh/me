@@ -29,6 +29,7 @@ git pull
 
 or if local changes need to be overwritten
 ```sh
+cd ${HOME}/me/me || exit
 git fetch origin
 git reset --hard origin/master
 ```
