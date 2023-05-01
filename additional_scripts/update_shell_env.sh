@@ -9,7 +9,7 @@ tmux -V
 tmux new -s updateconda
 ##---
 interactlong
-# srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 --pty zsh
+# srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 --exclude="dgx001,dgx002,node017,node[031-077],node086,node[100-116]" --pty zsh
 
 ###
 
