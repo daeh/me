@@ -176,6 +176,20 @@ fi
 path_extra="${INSTALL_TO}/zsh/bin:$path_extra"
 
 ############
+#  conda   #
+############
+#### NOT COMPLETE
+#### REQUIRES INTERACTION
+if [ ! -d $INSTALL_TO/conda ]; then
+	cd "${TEMP_DIR}"
+	mkdir conda
+	cd conda
+	wget "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
+	bash Miniconda3-latest-Linux-x86_64.sh
+	# eval "$(/om/weka/gablab/daeda/software/miniconda3/bin/conda shell.zsh hook)"
+fi
+
+############
 #  rmate   #
 ############
 if [ ! -f $INSTALL_TO/rmate/bin ]; then
