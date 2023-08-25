@@ -21,6 +21,8 @@ GIT_MIN_VERSION=2.17
 TMUX_VERSION=3.3a # https://github.com/tmux/tmux/wiki
 VIM_VERSION=9.0.1388 # https://github.com/vim/vim/tags
 ZSH_VERSION=5.9 # http://zsh.sourceforge.net/releases.html
+# NODE_VERSION=18.17.1 # https://nodejs.org/en/download
+NVM_VERSION=0.39.5 # https://github.com/nvm-sh/nvm/releases
 
 DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me}"
 read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
@@ -201,6 +203,34 @@ if [ ! -f $INSTALL_TO/rmate/bin ]; then
 fi
 # path_extra="${INSTALL_TO}/rmate/bin:$path_extra"
 
+############
+# NVM / Node.js
+############
+if [ -d /om2/user/daeda/software ]; then
+	if [ ! -d "/om2/user/daeda/software/node-v${NODE_VERSION}0-linux-x64/bin/node" ]; then
+		# cd "/om2/user/daeda/software"
+		# wget "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"
+		# tar xf "node-v${NODE_VERSION}-linux-x64.tar.xz"
+		cd "${TEMP_DIR}"
+		wget -qO- "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh" | bash
+		# The script clones the nvm repository to ~/.nvm, and attempts to add the source lines from the snippet below to the correct profile file (~/.bash_profile, ~/.zshrc, ~/.profile, or ~/.bashrc).
+		# export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+		# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+
+		### GET code from local script to finish installing node, webppl, etc.
+
+		### IMPORTANT - remove paths from profile
+
+		# export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+		# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+		##### nvm install node --latest-npm
+		##### nvm install --lts --latest-npm
+		# nvm install 17.0.0
+		# nvm use 17.0.0
+		# npm install -g webppl
+		# npm install -g jshint
+	fi
+fi
 
 ############
 # latex

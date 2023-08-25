@@ -87,9 +87,9 @@ pip install --upgrade tmuxp
 
 #######
 
-env_iaa_cmdstan
+env_cam
 #
-conda update -n ve_iaa_pytorch --all -c pytorch -c conda-forge
+conda update -n env_cam --all -c pytorch -c conda-forge
 #===
 which pip
 #
