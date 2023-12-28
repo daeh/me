@@ -4,29 +4,58 @@
 # exit on error
 set -e
 
-### openmind specific modules
+### check for centos 8 Rocky
+### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 -w node092 --pty zsh
+### lsb_release -d
+
 source /usr/share/Modules/init/bash
-module load openmind8/gcc/12.2.0
-# module load openmind/gcc/11.1.0
+
+centos_version=$(rpm -E "%{rhel}")
+
+printf "\nLoading ZSH for Centos %s\n" "${centos_version}"
+
+# export LD_LIBRARY_PATH=/home/daeda/me/dependencies/ncurses/lib:$LD_LIBRARY_PATH
+
+DEFAULT_INSTALL_TO=${ME_PATH:-$HOME/me}
+
+### openmind specific modules
+case $centos_version in
+    7)
+        module load openmind/gcc/12.2.0
+        # module load openmind/gcc/11.1.0
+        DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me7}"
+        ;;
+    8)
+        module load openmind8/gcc/12.2.0
+        DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me}"
+        ;;
+    *)
+        echo "Unknown CentOS version: $centos_version. Default settings will be applied."
+        module load openmind8/gcc/12.2.0
+        DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me_default}"
+        ;;
+esac
+
 module load openmind/isl/0.23
 module load openmind/mpfr/4.1.0  openmind/mpc/1.2.1 
 module load openmind/make/4.3
 
 LIBEVENT_VERSION=2.1.12-stable # https://libevent.org/
 NCURSES_VERSION=6.4 # https://invisible-island.net/ncurses/announce.html#h2-release-notes
-CURL_VERSION=7.88.1 # https://curl.haxx.se/download.html
-OPENSSL_VERSION=3.0.8 # https://www.openssl.org/source/
-GIT_VERSION=2.39.2 # https://git-scm.com/download/linux
+CURL_VERSION=8.5.0 # https://curl.haxx.se/download.html
+OPENSSL_VERSION=3.2.0 # https://www.openssl.org/source/
+GIT_VERSION=2.43.0 # https://git-scm.com/download/linux
 GIT_MIN_VERSION=2.17
 TMUX_VERSION=3.3a # https://github.com/tmux/tmux/wiki
-VIM_VERSION=9.0.1388 # https://github.com/vim/vim/tags
+VIM_VERSION=9.0.2185 # https://github.com/vim/vim/tags
 ZSH_VERSION=5.9 # http://zsh.sourceforge.net/releases.html
-# NODE_VERSION=18.17.1 # https://nodejs.org/en/download
-NVM_VERSION=0.39.5 # https://github.com/nvm-sh/nvm/releases
+NVM_VERSION=0.39.7 # https://github.com/nvm-sh/nvm/releases
+NODE_VERSION=20.10.0 # https://nodejs.org/en/download
 
-DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me}"
+
 read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
-INSTALL_TO="${INSTALL_TO:-$DEFAULT_INSTALL_TO}"
+# INSTALL_TO=${INSTALL_TO:-$DEFAULT_INSTALL_TO}
+: ${INSTALL_TO:="$DEFAULT_INSTALL_TO"}
 
 echo "Installing to: $INSTALL_TO"
 sleep 1
@@ -60,25 +89,56 @@ if [ ! -d $INSTALL_TO/dependencies/libevent ]; then
 	cd "${TEMP_DIR}"
 fi
 
-
 ############
 # ncurses  # (for tmux, zsh)
 ############
-if [ ! -d $INSTALL_TO/dependencies/ncurses ]; then
-	cd "${TEMP_DIR}"
-	wget --no-check-certificate "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz"
-	tar -xvzf "ncurses-${NCURSES_VERSION}.tar.gz"
-	cd "ncurses-${NCURSES_VERSION}"
-	./configure --prefix="${INSTALL_TO}/dependencies/ncurses" CXXFLAGS="-fPIC" CFLAGS="-fPIC"
-	make install
-	cd "${TEMP_DIR}"
-fi
+case $centos_version in
+    7)
+		############
+		# ncurses Centos 7 # (for tmux, zsh)
+		############
+		if [ ! -d $INSTALL_TO/dependencies/ncurses ]; then
+			cd "${TEMP_DIR}"
+			wget --no-check-certificate "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz"
+			tar -xvzf "ncurses-${NCURSES_VERSION}.tar.gz"
+			cd "ncurses-${NCURSES_VERSION}"
+			./configure --prefix="${INSTALL_TO}/dependencies/ncurses" CXXFLAGS="-fPIC" CFLAGS="-fPIC" ### for libncursesw.so.6 , --enable-widec for *w, --with-shared for *.so.6
+			make install
+			cd "${TEMP_DIR}"
+		fi
+        ;;
+    8)
+		############
+		# ncurses  # (for tmux, zsh)
+		############
+		if [ ! -d $INSTALL_TO/dependencies/ncurses ]; then
+			cd "${TEMP_DIR}"
+			wget --no-check-certificate "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz"
+			tar -xvzf "ncurses-${NCURSES_VERSION}.tar.gz"
+			cd "ncurses-${NCURSES_VERSION}"
+			./configure --prefix="${INSTALL_TO}/dependencies/ncurses" --enable-widec --with-shared CXXFLAGS="-fPIC" CFLAGS="-fPIC" ### for libncursesw.so.6 , --enable-widec for *w, --with-shared for *.so.6
+			make install
+			cd "${TEMP_DIR}"
+		fi
+        ;;
+    *)
+        echo "Unknown CentOS version: $centos_version. Default settings will be applied."
+        exit 1
+        ;;
+esac
+
+### ldconfig -p | grep libncursesw
+# [daeda@node084 zsh-5.9]$ ldconfig -p | grep libncursesw
+# 	libncursesw.so.6 (libc6,x86-64) => /lib64/libncursesw.so.6
+# 	libncursesw.so.5 (libc6,x86-64) => /lib64/libncursesw.so.5
+
 
 ############
 #   curl   # (for git)
 ############
 # If curl is not already installled...
-which curl-config || sudo -n yum install -y curl-devel || \
+which curl-config || \
+sudo -n yum install -y curl-devel || \
 if [ ! -d $INSTALL_TO/dependencies/curl ]; then
 	cd "${TEMP_DIR}"
 	wget --no-check-certificate "https://curl.se/download/curl-${CURL_VERSION}.tar.gz"
@@ -103,8 +163,25 @@ if [ ! -d $INSTALL_TO/dependencies/curl ]; then
 fi
 
 ## ---------------------- Packages ------------------------
-includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncurses"
-libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib -L${INSTALL_TO}/dependencies/libevent/include -L${INSTALL_TO}/dependencies/ncurses/include -L${INSTALL_TO}/dependencies/ncurses/include/ncurses"
+
+# includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncurses"
+# libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib -L${INSTALL_TO}/dependencies/libevent/include -L${INSTALL_TO}/dependencies/ncurses/include -L${INSTALL_TO}/dependencies/ncurses/include/ncurses"
+
+case $centos_version in
+    7)
+        includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncurses"
+        libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib"
+        ;;
+    8)
+        includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncursesw"
+        libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib"
+        ;;
+    *)
+        echo "Unknown CentOS version: $centos_version. Default settings will be applied."
+        exit 1
+        ;;
+esac
+
 
 ############
 #   git    #
@@ -169,10 +246,8 @@ if [ ! -d $INSTALL_TO/zsh ]; then
 	wget --no-check-certificate -O "zsh-${ZSH_VERSION}.tar.xz" "https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download"
 	tar -xvf "zsh-${ZSH_VERSION}.tar.xz"
 	cd "zsh-${ZSH_VERSION}"
-	CFLAGS="$includes" LDFLAGS="$libs" \
-		./configure --prefix="${INSTALL_TO}/zsh"
-	CPPFLAGS="$includes" LDFLAGS="-static $libs" \
-		make install
+	CFLAGS="$includes" LDFLAGS="$libs" ./configure --prefix="${INSTALL_TO}/zsh"
+	CPPFLAGS="$includes" LDFLAGS="-static $libs" make install
 	cd "${TEMP_DIR}"
 fi
 path_extra="${INSTALL_TO}/zsh/bin:$path_extra"
@@ -188,7 +263,11 @@ if [ ! -d $INSTALL_TO/conda ]; then
 	cd conda
 	wget "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
 	bash Miniconda3-latest-Linux-x86_64.sh
+	### after zsh is set up ###
+	### pivot to zsh
 	# eval "$(/om/weka/gablab/daeda/software/miniconda3/bin/conda shell.zsh hook)"
+	# cd **** me/me/additional_scripts
+	# conda env create -f env_omlab.yml
 fi
 
 ############
@@ -206,30 +285,29 @@ fi
 ############
 # NVM / Node.js
 ############
-if [ -d /om2/user/daeda/software ]; then
-	if [ ! -d "/om2/user/daeda/software/node-v${NODE_VERSION}0-linux-x64/bin/node" ]; then
-		# cd "/om2/user/daeda/software"
-		# wget "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"
-		# tar xf "node-v${NODE_VERSION}-linux-x64.tar.xz"
-		cd "${TEMP_DIR}"
-		wget -qO- "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh" | bash
-		# The script clones the nvm repository to ~/.nvm, and attempts to add the source lines from the snippet below to the correct profile file (~/.bash_profile, ~/.zshrc, ~/.profile, or ~/.bashrc).
-		# export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-		# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+if [ -d ~/.nvm/versions/node ]; then
+	# cd "/om2/user/daeda/software"
+	# wget "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"
+	# tar xf "node-v${NODE_VERSION}-linux-x64.tar.xz"
+	cd "${TEMP_DIR}"
+	wget -qO- "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh" | bash
+	# The script clones the nvm repository to ~/.nvm, and attempts to add the source lines from the snippet below to the correct profile file (~/.bash_profile, ~/.zshrc, ~/.profile, or ~/.bashrc).
+	# export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+	# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
 
-		### GET code from local script to finish installing node, webppl, etc.
+	### GET code from local script to finish installing node, webppl, etc.
 
-		### IMPORTANT - remove paths from profile
+	### IMPORTANT - remove paths from profile
 
-		# export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-		# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
-		##### nvm install node --latest-npm
-		##### nvm install --lts --latest-npm
-		# nvm install 17.0.0
-		# nvm use 17.0.0
-		# npm install -g webppl
-		# npm install -g jshint
-	fi
+	# export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+	# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+	##### nvm install node --latest-npm
+	##### nvm install --lts --latest-npm
+	# nvm install ${NODE_VERSION}
+	# nvm use ${NODE_VERSION}
+	# npm install -g webppl
+	# npm install -g jshint
+	# npm install --prefix ~/.webppl webppl-json --force
 fi
 
 ############
@@ -289,6 +367,7 @@ EOL
 		perl ./install-tl --profile texlive.profile
 	fi
 fi
+### tlmgr update --all
 
 ############
 #freesurfer#
@@ -387,8 +466,9 @@ echo "export PATH=$path_extra:\$PATH" > "$HOME/.merc"
 echo "export DEFAULT_TMUX_SHELL=$INSTALL_TO/zsh/bin/zsh" >> "$HOME/.merc"
 echo "export ME_PATH=$INSTALL_TO" >> "$HOME/.merc"
 # echo "source \$HOME/.me.conf" >> "$HOME/.merc"
-grep "source \$HOME/.merc" "$HOME/.bash_profile" || echo "source \$HOME/.merc" >> "$HOME/.bash_profile" || 
-grep "source \$HOME/.merc" "$HOME/.bashrc" || echo "source \$HOME/.merc" >> "$HOME/.bashrc"
+
+# grep "source \$HOME/.merc" "$HOME/.bash_profile" || echo "source \$HOME/.merc" >> "$HOME/.bash_profile" || 
+# grep "source \$HOME/.merc" "$HOME/.bashrc" || echo "source \$HOME/.merc" >> "$HOME/.bashrc"
 
 ### for some reason, I need this in my .bashrc :
 # export PATH=$HOME/local/bin:$PATH
