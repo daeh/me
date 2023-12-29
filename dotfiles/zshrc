@@ -6,6 +6,46 @@ fi
 
 source $HOME/.merc
 
+#
+# /etc/zlogin and .zlogin are sourced in login shells.  It should
+# contain commands that should be executed only in
+# login shells.  It should be used to set the terminal
+# type and run a series of external commands (fortune,
+# msgs, from, etc).
+#
+
+#
+#
+# /etc/zlogout and ~/.zlogout are run when an interactive session ends
+#
+#
+
+#
+# /etc/zprofile and ~/.zprofile are run for login shells
+#
+
+# /etc/zsh/zshenv: system-wide .zshenv file for zsh(1).
+#
+# This file is sourced on all invocations of the shell.
+# If the -f flag is present or if the NO_RCS option is
+# set within this file, all other initialization files
+# are skipped.
+#
+# This file should contain commands to set the command
+# search path, plus other important environment variables.
+# This file should not contain commands that produce
+# output or assume the shell is attached to a tty.
+#
+# Global Order: zshenv, zprofile, zshrc, zlogin
+
+#
+# /etc/zshrc is sourced in interactive shells.  It
+# should contain commands to set up aliases, functions,
+# options, key bindings, etc.
+#
+
+#######################
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
