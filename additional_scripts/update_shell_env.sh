@@ -14,10 +14,13 @@ interactlong
 ###
 
 cd "${HOME}/me/me" || exit
-git fetch origin main
-git merge origin/main
+# git fetch origin main
+# git merge origin/main
+# git reset --hard origin/main
 ###
-# git pull
+git pull
+###
+
 
 cd "${HOME}" || exit
 
