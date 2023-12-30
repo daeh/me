@@ -36,7 +36,8 @@ case $centos_version in
         remove_from_path "/home/daeda/me/zsh/bin"
         remove_from_path "/home/daeda/me/tmux/bin"
         remove_from_path "/home/daeda/me/vim/bin"
-        add_to_path_if_not_exists "/home/daeda/me7/zsh/bin:/home/daeda/me7/tmux/bin:/home/daeda/me7/vim/bin:/home/daeda/me/git/bin"
+        remove_from_path "/home/daeda/me/zsh/git"
+        add_to_path_if_not_exists "/home/daeda/me7/zsh/bin:/home/daeda/me7/tmux/bin:/home/daeda/me7/vim/bin:/home/daeda/me7/git/bin"
 
         # add_to_path "/home/daeda/me7/zsh/bin"
         # add_to_path "/home/daeda/me/vim/bin"
@@ -56,6 +57,7 @@ case $centos_version in
         remove_from_path "/home/daeda/me7/zsh/bin"
         remove_from_path "/home/daeda/me7/tmux/bin"
         remove_from_path "/home/daeda/me7/vim/bin"
+        remove_from_path "/home/daeda/me7/git/bin"
         add_to_path_if_not_exists "/home/daeda/me/zsh/bin:/home/daeda/me/tmux/bin:/home/daeda/me/vim/bin:/home/daeda/me/git/bin"
 
         # add_to_path "/home/daeda/me/zsh/bin"
