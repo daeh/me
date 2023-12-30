@@ -130,8 +130,28 @@ tlmgr update --all
 # Install Node.js from https://nodejs.org/en/download/
 #####
 
+### NB node 17 is latest to work on Centos ###
+
+nvm ls-remote
 node -v
-npm version
+
+nvm ls
+npm list -g --depth=0
+
+
+prev_ver=$(nvm current)
+nvm install node --reinstall-packages-from=node --latest-npm
+### or e.g. nvm install 20.10.0 --reinstall-packages-from=17.0.0 --latest-npm
+
+### double check that new_ver is set
+new_ver=$(nvm current)
+nvm ls
+nvm alias default "$new_ver"
+# nvm uninstall "$prev_ver"
+
+nvm ls
+npm list -g --depth=0
+
 npm list -g --depth=0
 npm outdated -g --depth=0
 

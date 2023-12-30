@@ -20,20 +20,20 @@ DEFAULT_INSTALL_TO=${ME_PATH:-$HOME/me}
 
 ### openmind specific modules
 case $centos_version in
-    7)
-        module load openmind/gcc/12.2.0
-        # module load openmind/gcc/11.1.0
-        DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me7}"
-        ;;
-    8)
-        module load openmind8/gcc/12.2.0
-        DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me}"
-        ;;
-    *)
-        echo "Unknown CentOS version: $centos_version. Default settings will be applied."
-        module load openmind8/gcc/12.2.0
-        DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me_default}"
-        ;;
+	7)
+		module load openmind/gcc/12.2.0
+		# module load openmind/gcc/11.1.0
+		DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me7}"
+		;;
+	8)
+		module load openmind8/gcc/12.2.0
+		DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me}"
+		;;
+	*)
+		echo "Unknown CentOS version: $centos_version. Default settings will be applied."
+		module load openmind8/gcc/12.2.0
+		DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me_default}"
+		;;
 esac
 
 module load openmind/isl/0.23
@@ -93,7 +93,7 @@ fi
 # ncurses  # (for tmux, zsh)
 ############
 case $centos_version in
-    7)
+	7)
 		############
 		# ncurses Centos 7 # (for tmux, zsh)
 		############
@@ -106,10 +106,10 @@ case $centos_version in
 			make install
 			cd "${TEMP_DIR}"
 		fi
-        ;;
-    8)
+		;;
+	8)
 		############
-		# ncurses  # (for tmux, zsh)
+		# ncurses Centos 8 # (for tmux, zsh)
 		############
 		if [ ! -d $INSTALL_TO/dependencies/ncurses ]; then
 			cd "${TEMP_DIR}"
@@ -120,11 +120,11 @@ case $centos_version in
 			make install
 			cd "${TEMP_DIR}"
 		fi
-        ;;
-    *)
-        echo "Unknown CentOS version: $centos_version. Default settings will be applied."
-        exit 1
-        ;;
+		;;
+	*)
+		echo "Unknown CentOS version: $centos_version. Default settings will be applied."
+		exit 1
+		;;
 esac
 
 ### ldconfig -p | grep libncursesw
@@ -168,20 +168,66 @@ fi
 # libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib -L${INSTALL_TO}/dependencies/libevent/include -L${INSTALL_TO}/dependencies/ncurses/include -L${INSTALL_TO}/dependencies/ncurses/include/ncurses"
 
 case $centos_version in
-    7)
-        includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncurses"
-        libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib"
-        ;;
-    8)
-        includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncursesw"
-        libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib"
-        ;;
-    *)
-        echo "Unknown CentOS version: $centos_version. Default settings will be applied."
-        exit 1
-        ;;
+	7)
+		includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncurses"
+		libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib"
+		;;
+	8)
+		includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncursesw"
+		libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib"
+		;;
+	*)
+		echo "Unknown CentOS version: $centos_version. Default settings will be applied."
+		exit 1
+		;;
 esac
 
+
+########################################################################
+
+############
+#   zsh    #
+############
+if [ ! -d $INSTALL_TO/zsh ]; then
+	cd "${TEMP_DIR}"
+	wget --no-check-certificate -O "zsh-${ZSH_VERSION}.tar.xz" "https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download"
+	tar -xvf "zsh-${ZSH_VERSION}.tar.xz"
+	cd "zsh-${ZSH_VERSION}"
+	CFLAGS="$includes" LDFLAGS="$libs" ./configure --prefix="${INSTALL_TO}/zsh"
+	CPPFLAGS="$includes" LDFLAGS="-static $libs" make install
+	cd "${TEMP_DIR}"
+fi
+path_extra="${INSTALL_TO}/zsh/bin:$path_extra"
+
+############
+#   tmux   #
+############
+if [ ! -d $INSTALL_TO/tmux ]; then
+	cd "${TEMP_DIR}"
+	wget "https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz"
+	tar xvzf "tmux-${TMUX_VERSION}.tar.gz"
+	cd "tmux-${TMUX_VERSION}"
+	CFLAGS="$includes" LDFLAGS="$libs" ./configure --prefix="${INSTALL_TO}/tmux"
+	CPPFLAGS="$includes" LDFLAGS="-static $libs" make install
+	cd "${TEMP_DIR}"
+fi
+path_extra="${INSTALL_TO}/tmux/bin:$path_extra"
+
+############
+#   vim    #
+############
+if [ ! -d $INSTALL_TO/vim ]; then
+	cd "${TEMP_DIR}"
+	wget "https://github.com/vim/vim/archive/v${VIM_VERSION}.tar.gz"
+	tar -xvf "v${VIM_VERSION}.tar.gz"
+	cd "vim-${VIM_VERSION}"
+	### does this need /bin?
+	vim_cv_tgetent=zero LDFLAGS="-L${INSTALL_TO}/dependencies/ncurses/lib -L${INSTALL_TO}/dependencies/ncurses/bin" \
+		./configure --prefix="${INSTALL_TO}/vim"
+	make install
+	cd "${TEMP_DIR}"
+fi
+path_extra="${INSTALL_TO}/vim/bin:$path_extra"
 
 ############
 #   git    #
@@ -207,50 +253,21 @@ if [ ! -d $INSTALL_TO/git ]; then
 fi
 path_extra="${INSTALL_TO}/git/bin:$path_extra"
 
-############
-#   tmux   #
-############
-if [ ! -d $INSTALL_TO/tmux ]; then
-	cd "${TEMP_DIR}"
-	wget "https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz"
-	tar xvzf "tmux-${TMUX_VERSION}.tar.gz"
-	cd "tmux-${TMUX_VERSION}"
-	CFLAGS="$includes" LDFLAGS="$libs" \
-		./configure --prefix="${INSTALL_TO}/tmux"
-	CPPFLAGS="$includes" LDFLAGS="-static $libs" \
-		make install
-	cd "${TEMP_DIR}"
-fi
-path_extra="${INSTALL_TO}/tmux/bin:$path_extra"
+
+########################################################################
 
 ############
-#   vim    #
+#  rmate   #
 ############
-if [ ! -d $INSTALL_TO/vim ]; then
-	cd "${TEMP_DIR}"
-	wget "https://github.com/vim/vim/archive/v${VIM_VERSION}.tar.gz"
-	tar -xvf "v${VIM_VERSION}.tar.gz"
-	cd "vim-${VIM_VERSION}"
-	vim_cv_tgetent=zero LDFLAGS="-L$INSTALL_TO/dependencies/ncurses/lib -L$INSTALL_TO/dependencies/ncurses/bin" \
-		./configure --prefix="${INSTALL_TO}/vim"
-	make install
+if [ ! -f $INSTALL_TO/rmate/bin ]; then
+	cd "${INSTALL_TO}"
+	mkdir -p "${INSTALL_TO}/rmate/bin/"
+	curl -Lo "${INSTALL_TO}/rmate/bin/rmate" "https://raw.githubusercontent.com/textmate/rmate/master/bin/rmate"
+	chmod a+x "${INSTALL_TO}/rmate/bin/rmate"
 	cd "${TEMP_DIR}"
 fi
-path_extra="${INSTALL_TO}/vim/bin:$path_extra"
-
-############
-#   zsh    #
-############
-if [ ! -d $INSTALL_TO/zsh ]; then
-	cd "${TEMP_DIR}"
-	wget --no-check-certificate -O "zsh-${ZSH_VERSION}.tar.xz" "https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download"
-	tar -xvf "zsh-${ZSH_VERSION}.tar.xz"
-	cd "zsh-${ZSH_VERSION}"
-	CFLAGS="$includes" LDFLAGS="$libs" ./configure --prefix="${INSTALL_TO}/zsh"
-	CPPFLAGS="$includes" LDFLAGS="-static $libs" make install
-	cd "${TEMP_DIR}"
-fi
-path_extra="${INSTALL_TO}/zsh/bin:$path_extra"
+### given alias in me.conf
+# path_extra="${INSTALL_TO}/rmate/bin:$path_extra"
 
 ############
 #  conda   #
@@ -269,18 +286,6 @@ if [ ! -d $INSTALL_TO/conda ]; then
 	# cd **** me/me/additional_scripts
 	# conda env create -f env_omlab.yml
 fi
-
-############
-#  rmate   #
-############
-if [ ! -f $INSTALL_TO/rmate/bin ]; then
-	cd "${INSTALL_TO}"
-	mkdir -p "${INSTALL_TO}/rmate/bin/"
-	curl -Lo "${INSTALL_TO}/rmate/bin/rmate" "https://raw.githubusercontent.com/textmate/rmate/master/bin/rmate"
-	chmod a+x "${INSTALL_TO}/rmate/bin/rmate"
-	cd "${TEMP_DIR}"
-fi
-# path_extra="${INSTALL_TO}/rmate/bin:$path_extra"
 
 ############
 # NVM / Node.js
@@ -396,8 +401,11 @@ export PATH=$path_extra:$PATH
 if [ ! -d $INSTALL_TO/me ]; then
 	git clone "https://github.com/daeh/me.git" "${INSTALL_TO}/me"
 fi
-cd "${INSTALL_TO}/me"
+cd "${INSTALL_TO}/me" || exit 1
 git pull
+### force if needbe
+# git fetch origin main
+# git reset --hard origin/main
 
 # for dotfile in $(ls -a $INSTALL_TO/me/dotfiles | grep [^.]); do
 for dotfilesrc in $(ls -a $INSTALL_TO/me/dotfiles); do
@@ -461,10 +469,13 @@ tmux kill-server
 # cleanup
 rm -rf "${TEMP_DIR}"
 
+### .merc file updated manually now ###
 # Create .merc file
-echo "export PATH=$path_extra:\$PATH" > "$HOME/.merc"
-echo "export DEFAULT_TMUX_SHELL=$INSTALL_TO/zsh/bin/zsh" >> "$HOME/.merc"
-echo "export ME_PATH=$INSTALL_TO" >> "$HOME/.merc"
+# echo "export PATH=$path_extra:\$PATH" > "$HOME/.merc"
+# echo "export DEFAULT_TMUX_SHELL=$INSTALL_TO/zsh/bin/zsh" >> "$HOME/.merc"
+# echo "export ME_PATH=$INSTALL_TO" >> "$HOME/.merc"
+
+### now in zshrc
 # echo "source \$HOME/.me.conf" >> "$HOME/.merc"
 
 # grep "source \$HOME/.merc" "$HOME/.bash_profile" || echo "source \$HOME/.merc" >> "$HOME/.bash_profile" || 
@@ -472,6 +483,5 @@ echo "export ME_PATH=$INSTALL_TO" >> "$HOME/.merc"
 
 ### for some reason, I need this in my .bashrc :
 # export PATH=$HOME/local/bin:$PATH
-# having source $HOME/.merc in .bash_profile alone does not work, having that and `source $HOME/.merc` in $HOME/.bashrc does not work.
 
 echo "Installled to: $INSTALL_TO"
