@@ -41,16 +41,16 @@ module load openmind/mpfr/4.1.0  openmind/mpc/1.2.1
 module load openmind/make/4.3
 
 LIBEVENT_VERSION=2.1.12-stable # https://libevent.org/
-NCURSES_VERSION=6.4 # https://invisible-island.net/ncurses/announce.html#h2-release-notes
-CURL_VERSION=8.5.0 # https://curl.haxx.se/download.html
-OPENSSL_VERSION=3.2.0 # https://www.openssl.org/source/
-GIT_VERSION=2.43.0 # https://git-scm.com/download/linux
-GIT_MIN_VERSION=2.43
-TMUX_VERSION=3.3a # https://github.com/tmux/tmux/wiki
-VIM_VERSION=9.0.2185 # https://github.com/vim/vim/tags
+NCURSES_VERSION=6.5 # https://invisible-island.net/ncurses/announce.html#h2-release-notes
+CURL_VERSION=8.7.1 # https://curl.haxx.se/download.html
+OPENSSL_VERSION=3.3.0 # https://www.openssl.org/source/
+GIT_VERSION=2.45.0 # https://git-scm.com/download/linux
+GIT_MIN_VERSION=2.45
+TMUX_VERSION=3.4 # https://github.com/tmux/tmux/wiki
+VIM_VERSION=9.1.0411 # https://github.com/vim/vim/tags
 ZSH_VERSION=5.9 # http://zsh.sourceforge.net/releases.html
 NVM_VERSION=0.39.7 # https://github.com/nvm-sh/nvm/releases
-NODE_VERSION=20.10.0 # https://nodejs.org/en/download
+NODE_VERSION=20.13.1 # https://nodejs.org/en/download
 
 
 read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
