@@ -1,6 +1,16 @@
 source ~/.zshrc || exit
 
 
+# tmglr
+# conda
+# nvm
+# node
+
+# tb_latex
+# tlmgr update --self --all --reinstall-forcibly-removed
+
+# tb_conda
+
 print "current zsh:"
 zsh --version
 print "current tmux:"
@@ -27,16 +37,16 @@ cd "${HOME}" || exit
 ###
 
 omz update
-
+#===
 cd ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting || exit
 git pull --rebase --stat origin master
-
+#===
 cd ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions || exit
 git pull --rebase --stat origin master
-
+#===
 # cd ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-completions || exit
 # git pull --rebase --stat origin master
-
+#===
 cd ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k || exit
 git -C ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k pull
 
@@ -135,16 +145,19 @@ tlmgr update --all
 
 ### NB node 17 is latest to work on Centos ###
 
+### tb_webppl
+
 nvm ls-remote
 node -v
 
+nvm --version
 nvm ls
 npm list -g --depth=0
 
 
 prev_ver=$(nvm current)
 nvm install node --reinstall-packages-from=node --latest-npm
-### or e.g. nvm install 20.10.0 --reinstall-packages-from=17.0.0 --latest-npm
+### or e.g. nvm install 20.13.1 --reinstall-packages-from=17.0.0 --latest-npm
 
 ### double check that new_ver is set
 new_ver=$(nvm current)
@@ -162,7 +175,12 @@ npm outdated -g --depth=0
 
 npm install -g npm@latest
 #
+npm update -g corepack
+# npm update -g eslint
+# npm update -g eslint_d
 npm update -g jshint
+# npm update -g prettier
+npm update -g webppl
 
 npm outdated --prefix ~/.webppl --depth=0
 npm update -g webppl
