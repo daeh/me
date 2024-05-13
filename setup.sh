@@ -260,15 +260,115 @@ path_extra="${INSTALL_TO}/git/bin:$path_extra"
 ############
 #  rmate   #
 ############
-if [ ! -f $INSTALL_TO/rmate/bin ]; then
-	cd "${INSTALL_TO}"
-	mkdir -p "${INSTALL_TO}/rmate/bin/"
-	curl -Lo "${INSTALL_TO}/rmate/bin/rmate" "https://raw.githubusercontent.com/textmate/rmate/master/bin/rmate"
-	chmod a+x "${INSTALL_TO}/rmate/bin/rmate"
-	cd "${TEMP_DIR}"
+case $centos_version in
+	7)
+		echo "bypassing rmate install for centos 7"
+		;;
+	8)
+		if [ ! -f $INSTALL_TO/rmate/bin ]; then
+			cd "${INSTALL_TO}"
+			mkdir -p "${INSTALL_TO}/rmate/bin/"
+			curl -Lo "${INSTALL_TO}/rmate/bin/rmate" "https://raw.githubusercontent.com/textmate/rmate/master/bin/rmate"
+			chmod a+x "${INSTALL_TO}/rmate/bin/rmate"
+			cd "${TEMP_DIR}"
+		fi
+		### given alias in me.conf
+		# path_extra="${INSTALL_TO}/rmate/bin:$path_extra"
+		;;
+	*)
+		echo "Unknown CentOS version: $centos_version. Default settings will be applied."
+		exit 1
+		;;
+esac
+
+
+
+########################################################################
+########################################################################
+
+# ------------- Extensions / Config -------------------
+export PATH=$path_extra$PATH
+
+case $centos_version in
+	7)
+		echo "bypassing install for centos 7"
+		;;
+	8)
+		# Dotfiles
+		if [ ! -d $INSTALL_TO/me ]; then
+			git clone "https://github.com/daeh/me.git" "${INSTALL_TO}/me"
+		fi
+		cd "${INSTALL_TO}/me" || exit 1
+		git pull
+		### force if needbe
+		# git fetch origin main
+		# git reset --hard origin/main
+
+		# for dotfile in $(ls -a $INSTALL_TO/me/dotfiles | grep [^.]); do
+		for dotfilesrc in $(ls -a $INSTALL_TO/me/dotfiles); do
+
+			# if [ ${#dotfile} -ge 3 ]; then ### skip . and ..
+			if [[ $dotfilesrc != .* ]]; then ### skip ., .., .DS_*
+				dotfile=".${dotfilesrc}"
+				echo "Addding dotfile: ${dotfile}"
+
+				if [ -L $HOME/$dotfile ]; then ### is symbolic link
+					rm "$HOME/$dotfile"
+				elif [ -f $HOME/$dotfile ]; then ### is file
+					mv "$HOME/$dotfile" "$HOME/${dotfile}_"$(date +"%F_%H.%M.%S")
+				fi
+				ln -s "$INSTALL_TO/me/dotfiles/$dotfilesrc" "$HOME/$dotfile"
+			else
+				echo "Skipping dotfilesrc: ${dotfilesrc}"
+			fi 
+
+		done
+		;;
+	*)
+		echo "Unknown CentOS version: $centos_version. Default settings will be applied."
+		exit 1
+		;;
+esac
+
+
+# Oh-my-zsh
+if [ ! -d $HOME/.oh-my-zsh ]; then
+	PATH=${INSTALL_TO}/zsh/bin:$PATH RUNZSH=no CHSH=no sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
 fi
-### given alias in me.conf
-# path_extra="${INSTALL_TO}/rmate/bin:$path_extra"
+
+# Zsh plugins
+zshcustom=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
+# if [ ! -f ${zshcustom}/bullet-train.zsh-theme ]; then
+# 	wget http://raw.github.com/caiogondim/bullet-train-oh-my-zsh-theme/master/bullet-train.zsh-theme -O ${zshcustom}/bullet-train.zsh-theme
+# fi
+if [ ! -d ${zshcustom}/themes/powerlevel10k ]; then
+	git clone --depth=1 "https://github.com/romkatv/powerlevel10k.git" "${zshcustom}/themes/powerlevel10k"
+fi
+if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ]; then
+	git clone "https://github.com/zsh-users/zsh-autosuggestions" "${zshcustom}/plugins/zsh-autosuggestions"
+fi
+if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting ]; then
+	git clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${zshcustom}/plugins/zsh-syntax-highlighting"
+fi
+
+# tmux plugin manager
+if [ ! -d $HOME/.tmux/plugins/tpm ]; then
+	git clone "https://github.com/tmux-plugins/tpm" "$HOME/.tmux/plugins/tpm"
+fi
+# in case tmux is running
+tmux kill-server
+# start a server but don't attach to it
+tmux start-server
+# create a new session but don't attach to it either
+tmux new-session -d
+# install the plugins
+$HOME/.tmux/plugins/tpm/scripts/install_plugins.sh
+# killing the server is not required, I guess
+tmux kill-server
+
+
+########################################################################
+########################################################################
 
 ########################################################################
 ########################################################################
@@ -281,7 +381,7 @@ fi
 ############
 #### NOT COMPLETE
 #### REQUIRES INTERACTION
-if [ ! -d $INSTALL_TO/conda ]; then
+if [ ! -d /om/weka/gablab/daeda/software/miniconda3 ]; then
 	cd "${TEMP_DIR}"
 	mkdir conda
 	cd conda
@@ -290,14 +390,14 @@ if [ ! -d $INSTALL_TO/conda ]; then
 	### after zsh is set up ###
 	### pivot to zsh
 	# eval "$(/om/weka/gablab/daeda/software/miniconda3/bin/conda shell.zsh hook)"
-	# cd **** me/me/additional_scripts
+	# cd ${HOME}/me/me/additional_scripts ***** check centos version
 	# conda env create -f env_omlab.yml
 fi
 
 ############
 # NVM / Node.js
 ############
-if [ -d ~/.nvm/versions/node ]; then
+if [ -d ${HOME}/.nvm/versions/node ]; then
 	# cd "/om2/user/daeda/software"
 	# wget "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"
 	# tar xf "node-v${NODE_VERSION}-linux-x64.tar.xz"
@@ -381,6 +481,10 @@ EOL
 fi
 ### tlmgr update --all
 
+# tlmgr update --list
+# tlmgr update --self
+# tlmgr update --self --all --reinstall-forcibly-removed
+
 ############
 #freesurfer#
 ############
@@ -401,74 +505,7 @@ fi
 # source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 
-# ------------- Extensions / Config -------------------
-export PATH=$path_extra:$PATH
 
-# Dotfiles
-if [ ! -d $INSTALL_TO/me ]; then
-	git clone "https://github.com/daeh/me.git" "${INSTALL_TO}/me"
-fi
-cd "${INSTALL_TO}/me" || exit 1
-git pull
-### force if needbe
-# git fetch origin main
-# git reset --hard origin/main
-
-# for dotfile in $(ls -a $INSTALL_TO/me/dotfiles | grep [^.]); do
-for dotfilesrc in $(ls -a $INSTALL_TO/me/dotfiles); do
-
-	# if [ ${#dotfile} -ge 3 ]; then ### skip . and ..
-	if [[ $dotfilesrc != .* ]]; then ### skip ., .., .DS_*
-		dotfile=".${dotfilesrc}"
-		echo "Addding dotfile: ${dotfile}"
-
-		if [ -L $HOME/$dotfile ]; then ### is symbolic link
-			rm "$HOME/$dotfile"
-		elif [ -f $HOME/$dotfile ]; then ### is file
-			mv "$HOME/$dotfile" "$HOME/${dotfile}_"$(date +"%F_%H.%M.%S")
-		fi
-		ln -s "$INSTALL_TO/me/dotfiles/$dotfilesrc" "$HOME/$dotfile"
-	else
-		echo "Skipping dotfilesrc: ${dotfilesrc}"
-	fi 
-
-done
-
-
-# Oh-my-zsh
-if [ ! -d $HOME/.oh-my-zsh ]; then
-	PATH=${INSTALL_TO}/zsh/bin:$PATH RUNZSH=no CHSH=no sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
-fi
-
-# Zsh plugins
-zshcustom=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
-# if [ ! -f ${zshcustom}/bullet-train.zsh-theme ]; then
-# 	wget http://raw.github.com/caiogondim/bullet-train-oh-my-zsh-theme/master/bullet-train.zsh-theme -O ${zshcustom}/bullet-train.zsh-theme
-# fi
-if [ ! -d ${zshcustom}/themes/powerlevel10k ]; then
-	git clone --depth=1 "https://github.com/romkatv/powerlevel10k.git" "${zshcustom}/themes/powerlevel10k"
-fi
-if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ]; then
-	git clone "https://github.com/zsh-users/zsh-autosuggestions" "${zshcustom}/plugins/zsh-autosuggestions"
-fi
-if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting ]; then
-	git clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${zshcustom}/plugins/zsh-syntax-highlighting"
-fi
-
-# tmux plugin manager
-if [ ! -d $HOME/.tmux/plugins/tpm ]; then
-	git clone "https://github.com/tmux-plugins/tpm" "$HOME/.tmux/plugins/tpm"
-fi
-# in case tmux is running
-tmux kill-server
-# start a server but don't attach to it
-tmux start-server
-# create a new session but don't attach to it either
-tmux new-session -d
-# install the plugins
-$HOME/.tmux/plugins/tpm/scripts/install_plugins.sh
-# killing the server is not required, I guess
-tmux kill-server
 
 
 # -----------------------------------------------------
