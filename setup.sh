@@ -58,6 +58,7 @@ read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
 : ${INSTALL_TO:="$DEFAULT_INSTALL_TO"}
 
 echo "Installing to: $INSTALL_TO"
+echo ""
 sleep 1
 
 TEMP_DIR=$INSTALL_TO/temp_install
@@ -268,6 +269,12 @@ if [ ! -f $INSTALL_TO/rmate/bin ]; then
 fi
 ### given alias in me.conf
 # path_extra="${INSTALL_TO}/rmate/bin:$path_extra"
+
+########################################################################
+########################################################################
+### other install locations
+########################################################################
+########################################################################
 
 ############
 #  conda   #

@@ -50,3 +50,32 @@ exit zsh
 remove everything in `~/me` that needs to be updated (leave the `me` dir)
 
 step through `setup.sh`
+
+
+
+
+
+---
+
+
+
+```
+srun --job-name=upgrade8 --cpus-per-task=6 --mem=25G --time=0-23:00:00 -w node084 --partition=gablab --pty bash
+
+
+### works for zsh and bash
+
+rpm -E "%{rhel}" 
+### > 7
+### > 8
+
+lsb_release -d
+### > Description:	CentOS Linux release 7.9.2009 (Core)
+### > Description:	Rocky Linux release 8.6 (Green Obsidian)
+
+tail /etc/redhat-release
+### > CentOS Linux release 7.9.2009 (Core)
+
+
+```
+

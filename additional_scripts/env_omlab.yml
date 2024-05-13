@@ -9,7 +9,7 @@ channels:
 dependencies:
   - python
   - jupyterlab
-  - autopep8
+  - ruff
   - numpy
   - pandas
   - pip
