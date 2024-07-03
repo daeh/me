@@ -7,6 +7,7 @@ source ~/.zshrc || exit
 # node
 
 # tb_latex
+# tlmgr update --list
 # tlmgr update --self --all --reinstall-forcibly-removed
 
 # tb_conda
