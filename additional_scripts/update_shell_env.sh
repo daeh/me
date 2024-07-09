@@ -12,19 +12,41 @@ source ~/.zshrc || exit
 
 # tb_conda
 
+# srun --constraint=rocky8 --cpus-per-task=6 --mem=25G --time=2-00:00:00 --pty zsh
+# tmux new -s updateconda8
+
+
+centos_version=$(rpm -E "%{rhel}")
+
+case $centos_version in
+	7)
+		module load openmind/gcc/12.2.0
+		printf "\nCentos 7 :: %s\n" "${ME_PATH}"
+		;;
+	8)
+		module load openmind8/gcc/12.2.0
+		printf "\nCentos 8 :: %s\n" "${ME_PATH}"
+		;;
+	*)
+		echo "Unknown CentOS version: $centos_version. Default settings will be applied."
+		module load openmind8/gcc/12.2.0
+		printf "\nCentos UNKNOWN :: %s\n" "${ME_PATH}"
+		;;
+esac
+
 print "current zsh:"
 zsh --version
 print "current tmux:"
 tmux -V
 
-tmux new -s updateconda
-##---
-interactlong
+# tmux new -s updateconda7
+# ##---
+# interactlong7
 # srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 --exclude="dgx001,dgx002,node017,node[031-077],node086,node[100-116]" --pty zsh
 
 ###
 
-cd "${HOME}/me/me" || exit
+cd "${ME_PATH}" || exit
 # git fetch origin main
 # git merge origin/main
 # git reset --hard origin/main
@@ -169,7 +191,6 @@ nvm alias default "$new_ver"
 nvm ls
 npm list -g --depth=0
 
-npm list -g --depth=0
 npm outdated -g --depth=0
 
 #
