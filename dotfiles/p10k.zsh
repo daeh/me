@@ -33,6 +33,7 @@
     # os_icon               # os identifier
     dir                     # current directory
     # vcs                     # git status
+    prompt_osversion        # os version
     prompt_char             # prompt symbol
   )
 
@@ -1578,6 +1579,11 @@
   # Type `p10k help segment` for documentation and a more sophisticated example.
   function prompt_example() {
     p10k segment -f 208 -i '⭐' -t 'hello, %n'
+  }
+
+  function prompt_osversion() {
+    local os_version=$(rpm -E "%{rhel}")
+    p10k segment -f 208 -i '🖥' -t "${os_version}"
   }
 
   # User-defined prompt segments may optionally provide an instant_prompt_* function. Its job
