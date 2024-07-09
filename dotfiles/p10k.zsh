@@ -33,7 +33,6 @@
     # os_icon               # os identifier
     dir                     # current directory
     # vcs                     # git status
-    prompt_osversion        # os version
     prompt_char             # prompt symbol
   )
 
@@ -82,6 +81,7 @@
     gcloud                  # google cloud cli account and project (https://cloud.google.com/)
     google_app_cred         # google application credentials (https://cloud.google.com/docs/authentication/production)
     toolbox                 # toolbox name (https://github.com/containers/toolbox)
+    daecustomosversion               # os version
     context                 # user@hostname
     nordvpn                 # nordvpn connection status, linux only (https://nordvpn.com/)
     ranger                  # ranger shell (https://github.com/ranger/ranger)
@@ -1581,9 +1581,28 @@
     p10k segment -f 208 -i '⭐' -t 'hello, %n'
   }
 
-  function prompt_osversion() {
+  function prompt_daecustomosversion() {
     local os_version=$(rpm -E "%{rhel}")
-    p10k segment -f 208 -i '🖥' -t "${os_version}"
+    local color
+    # if [ -f /etc/centos-release ]; then
+    #   grep -q "CentOS Linux release 7" /etc/centos-release && echo "CentOS 7" || echo "Other CentOS"
+    # elif [ -f /etc/rocky-release ]; then
+    #   grep -q "Rocky Linux release 8" /etc/rocky-release && echo "Rocky 8" || echo "Other Rocky"
+    # else
+    #   echo "Unknown"
+    # fi
+    case "$os_version" in
+      "7")
+        color=1  # Red for CentOS 7
+        ;;
+      "8")
+        color=4  # Blue for Rocky 8
+        ;;
+      *)
+        color=3  # Yellow for unknown or other versions
+        ;;
+    esac
+    p10k segment -f $color -t "(v${os_version})"
   }
 
   # User-defined prompt segments may optionally provide an instant_prompt_* function. Its job
