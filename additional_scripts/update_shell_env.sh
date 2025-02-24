@@ -12,7 +12,7 @@ source ~/.zshrc || exit
 
 # tb_conda
 
-# srun --constraint=rocky8 --cpus-per-task=6 --mem=25G --time=2-00:00:00 --pty zsh
+# srun --constraint=rocky8 --cpus-per-task=4 --mem=20G --time=1-00:00:00 --pty zsh
 # tmux new -s updateconda8
 
 
@@ -106,9 +106,9 @@ tb_conda
 
 conda clean --all --yes
 #
-conda update -n base -c defaults conda
+conda update -n base -c conda-forge conda
 #===
-conda update -n base -c defaults python
+conda update -n base -c conda-forge python
 
 #===
 

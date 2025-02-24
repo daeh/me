@@ -331,6 +331,8 @@ case $centos_version in
 esac
 
 
+###TODO install prezto instead
+
 # Oh-my-zsh
 if [ ! -d $HOME/.oh-my-zsh ]; then
 	PATH=${INSTALL_TO}/zsh/bin:$PATH RUNZSH=no CHSH=no sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
@@ -376,6 +378,34 @@ tmux kill-server
 ########################################################################
 ########################################################################
 
+
+############
+#  uv      #
+############
+# https://docs.astral.sh/uv/getting-started/installation/
+# https://docs.astral.sh/uv/configuration/installer/
+# if [ ! -d /om/weka/gablab/daeda/software/miniconda3 ]; then
+	cd "${TEMP_DIR}"
+	mkdir uv
+	cd uv
+
+	# curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --help
+
+	# curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/custom/path" sh
+
+
+	### NB currently using zsh to install
+	
+	### BY DEFAULT
+	#### installs to ~/.local/bin/uv
+
+	#### UPDATE INSTALL PATH
+	curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.5.26/uv-installer.sh | env UV_INSTALL_DIR="/custom/path" zsh
+	#### CHECK THAT THIS IS WANTED
+	source $HOME/.local/bin/env zsh
+
+# fi
+
 ############
 #  conda   #
 ############
@@ -395,32 +425,39 @@ if [ ! -d /om/weka/gablab/daeda/software/miniconda3 ]; then
 fi
 
 ############
-# NVM / Node.js
+# FNM      #
 ############
-if [ -d ${HOME}/.nvm/versions/node ]; then
-	# cd "/om2/user/daeda/software"
-	# wget "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"
-	# tar xf "node-v${NODE_VERSION}-linux-x64.tar.xz"
-	cd "${TEMP_DIR}"
-	wget -qO- "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh" | bash
-	# The script clones the nvm repository to ~/.nvm, and attempts to add the source lines from the snippet below to the correct profile file (~/.bash_profile, ~/.zshrc, ~/.profile, or ~/.bashrc).
-	# export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-	# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+# https://github.com/Schniz/fnm
+curl -fsSL https://fnm.vercel.app/install | zsh
 
-	### GET code from local script to finish installing node, webppl, etc.
 
-	### IMPORTANT - remove paths from profile
+# ############
+# # NVM / Node.js
+# ############
+# if [ -d ${HOME}/.nvm/versions/node ]; then
+# 	# cd "/om2/user/daeda/software"
+# 	# wget "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"
+# 	# tar xf "node-v${NODE_VERSION}-linux-x64.tar.xz"
+# 	cd "${TEMP_DIR}"
+# 	wget -qO- "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh" | bash
+# 	# The script clones the nvm repository to ~/.nvm, and attempts to add the source lines from the snippet below to the correct profile file (~/.bash_profile, ~/.zshrc, ~/.profile, or ~/.bashrc).
+# 	# export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+# 	# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
 
-	# export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-	# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
-	##### nvm install node --latest-npm
-	##### nvm install --lts --latest-npm
-	# nvm install ${NODE_VERSION}
-	# nvm use ${NODE_VERSION}
-	# npm install -g webppl
-	# npm install -g jshint
-	# npm install --prefix ~/.webppl webppl-json --force
-fi
+# 	### GET code from local script to finish installing node, webppl, etc.
+
+# 	### IMPORTANT - remove paths from profile
+
+# 	# export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+# 	# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+# 	##### nvm install node --latest-npm
+# 	##### nvm install --lts --latest-npm
+# 	# nvm install ${NODE_VERSION}
+# 	# nvm use ${NODE_VERSION}
+# 	# npm install -g webppl
+# 	# npm install -g jshint
+# 	# npm install --prefix ~/.webppl webppl-json --force
+# fi
 
 ############
 # latex
