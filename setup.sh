@@ -6,6 +6,11 @@ set -e
 
 ### check for centos 8 Rocky
 ### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 -w node092 --pty zsh
+### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 -w node092 --pty zsh --constraint=rocky8
+### lsb_release -d
+
+### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 -w node092 --pty bash
+### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 -w node092 --pty bash --constraint=rocky8
 ### lsb_release -d
 
 source /usr/share/Modules/init/bash
@@ -17,6 +22,7 @@ printf "\nLoading ZSH for Centos %s\n" "${centos_version}"
 # export LD_LIBRARY_PATH=/home/daeda/me/dependencies/ncurses/lib:$LD_LIBRARY_PATH
 
 DEFAULT_INSTALL_TO=${ME_PATH:-$HOME/me}
+printf "\Installing to %s\n" "${DEFAULT_INSTALL_TO}"
 
 ### openmind specific modules
 case $centos_version in
@@ -43,14 +49,14 @@ module load openmind/make/4.3
 LIBEVENT_VERSION=2.1.12-stable # https://libevent.org/
 NCURSES_VERSION=6.5 # https://invisible-island.net/ncurses/announce.html#h2-release-notes
 CURL_VERSION=8.7.1 # https://curl.haxx.se/download.html
-OPENSSL_VERSION=3.3.0 # https://www.openssl.org/source/
-GIT_VERSION=2.45.0 # https://git-scm.com/download/linux
-GIT_MIN_VERSION=2.45
-TMUX_VERSION=3.4 # https://github.com/tmux/tmux/wiki
-VIM_VERSION=9.1.0411 # https://github.com/vim/vim/tags
+OPENSSL_VERSION=3.5.0 # https://www.openssl.org/source/
+GIT_VERSION=2.49.0 # https://git-scm.com/download/linux
+GIT_MIN_VERSION=2.49
+TMUX_VERSION=3.5a # https://github.com/tmux/tmux/wiki
+VIM_VERSION=9.1.1374 # https://github.com/vim/vim/tags
 ZSH_VERSION=5.9 # http://zsh.sourceforge.net/releases.html
-NVM_VERSION=0.39.7 # https://github.com/nvm-sh/nvm/releases
-NODE_VERSION=20.13.1 # https://nodejs.org/en/download
+NVM_VERSION=0.30.3 # https://github.com/nvm-sh/nvm/releases
+NODE_VERSION=22.15.0 # https://nodejs.org/en/download
 
 
 read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
@@ -300,7 +306,7 @@ case $centos_version in
 		fi
 		cd "${INSTALL_TO}/me" || exit 1
 		git pull
-		### force if needbe
+		### force if need be
 		# git fetch origin main
 		# git reset --hard origin/main
 

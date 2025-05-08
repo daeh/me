@@ -1,0 +1,15 @@
+### The .bash_profile is sourced automatically in a login shell, for example, when a user logs in to the Openmind head node or logs in to a compute node using ssh nodeXXX.
+
+### The .bashrc is sourced automatically in a non-login shell, for example, when a user executes bash or gets on an interactive section using srun --pty bash or submits a batch job script using sbatch job.sh (if there is the first line #!/bin/bash in the job script).
+
+echo "LOADING .bash_profile"
+echo "Current SHELL: $0"
+
+if [ -f $HOME/.bashrc ]; then
+    source $HOME/.bashrc
+fi
+
+# export PATH=$HOME/local/bin:$PATH
+
+
+. "$HOME/.local/bin/env"
