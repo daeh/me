@@ -22,14 +22,14 @@ source /usr/share/Modules/init/bash
 # export LD_LIBRARY_PATH=/home/daeda/me/dependencies/ncurses/lib:$LD_LIBRARY_PATH
 
 if [ -f /etc/os-release ]; then
-    # Get the distribution ID
-    DISTRO_ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
+	# Get the distribution ID
+	DISTRO_ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
 	DISTRO_VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
 	# cat /etc/os-release
 	# hostnamectl
 	# echo $(rpm -E "%{rhel}")
 else
-    echo "Cannot determine OS distribution"
+	echo "Cannot determine OS distribution"
 fi
 
 printf "\nFound OS %s %s\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
@@ -71,7 +71,7 @@ TMUX_VERSION=3.5a # https://github.com/tmux/tmux/wiki
 VIM_VERSION=9.1.1374 # https://github.com/vim/vim/tags
 ZSH_VERSION=5.9 # http://zsh.sourceforge.net/releases.html
 # NVM_VERSION=0.30.3 # https://github.com/nvm-sh/nvm/releases
-# NODE_VERSION=22.15.0 # https://nodejs.org/en/download
+NODE_VERSION=24.0.1 # https://nodejs.org/en/download
 
 
 #### WARNING - DOES NOT WORK
@@ -88,7 +88,7 @@ read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
 
 # Step 3: Set INSTALL_TO to DEFAULT_INSTALL_TO if the input was empty
 if [ -z "$INSTALL_TO" ]; then
-    INSTALL_TO="$DEFAULT_INSTALL_TO"
+	INSTALL_TO="$DEFAULT_INSTALL_TO"
 fi
 
 # Step 4: Confirm the installation path
@@ -382,6 +382,7 @@ esac
 
 
 ###TODO install prezto instead
+# https://github.com/sorin-ionescu/prezto
 
 # Oh-my-zsh
 if [ ! -d $HOME/.oh-my-zsh ]; then
@@ -439,28 +440,46 @@ tmux kill-server
 	mkdir uv
 	cd uv
 
-	curl -LsSf https://astral.sh/uv/install.sh | bash ### works
+	# curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --help
+
+	# curl -LsSf https://astral.sh/uv/install.sh | bash ### works
+	curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="${INSTALL_TO}/uv" INSTALLER_NO_MODIFY_PATH=1 bash ### don't modify path
+	
 	# curl -LsSf https://astral.sh/uv/install.sh | bash
 	# curl -LsSf https://astral.sh/uv/install.sh | zsh
 	### 
-	# https://docs.astral.sh/uv/getting-started/installation/
-
-	# curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --help
-
-	# curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/custom/path" sh
-
-
-	### NB currently using zsh to install
 	
 	### BY DEFAULT
 	#### installs to ~/.local/bin/uv
 
 	#### UPDATE INSTALL PATH
 	# curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.7.3/uv-installer.sh | env UV_INSTALL_DIR="${HOME}/me7" zsh
-	#### CHECK THAT THIS IS WANTED
-	# source $HOME/.local/bin/env zsh
 
 # fi
+
+############
+# FNM      #
+############
+# https://github.com/Schniz/fnm
+# curl -fsSL https://fnm.vercel.app/install | bash ### workd
+# curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "${HOME}/.local/share/fnm" --skip-shell
+curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "${INSTALL_TO}/fnm" --skip-shell
+### THEN :: install node ###
+# FNM_PATH="${HOME}/.local/share/fnm"
+# if [ -d "$FNM_PATH" ]; then
+#   export PATH="$FNM_PATH:$PATH"
+#   eval "`fnm env`"
+# fi
+# eval "$(fnm env --corepack-enabled --version-file-strategy=recursive --shell zsh)"
+# print "Remotes"
+# fnm list-remote
+# print "\nInstalled"
+# fnm list
+# print "\nActive"
+# fnm current
+# fnm install --progress auto --corepack-enabled "v${NODE_VERSION}"
+# fnm default "v${NODE_VERSION}"
+### IMPORTANT:: change install location
 
 ############
 #  conda   #
@@ -480,18 +499,7 @@ if [ ! -d /om/weka/gablab/daeda/software/miniconda3 ]; then
 	# conda env create -f env_omlab.yml
 fi
 
-############
-# FNM      #
-############
-# https://github.com/Schniz/fnm
-curl -fsSL https://fnm.vercel.app/install | bash
-### THEN :: install node ###
-# FNM_PATH="${HOME}/.local/share/fnm"
-# if [ -d "$FNM_PATH" ]; then
-#   export PATH="$FNM_PATH:$PATH"
-#   eval "`fnm env`"
-# fi
-# eval "$(fnm env --corepack-enabled --version-file-strategy=recursive --shell zsh)"
+
 
 # ############
 # # NVM / Node.js
@@ -524,6 +532,9 @@ curl -fsSL https://fnm.vercel.app/install | bash
 ############
 # latex
 ############
+
+#### NB do this in a tmux session
+
 if [ -d /om2/user/daeda/software ]; then
 	if [ ! -d /om2/user/daeda/software/texlive ]; then
 		
@@ -543,6 +554,9 @@ if [ -d /om2/user/daeda/software ]; then
 #
 # <O> options:
 #  [X] use letter size instead of A4 by default
+
+		# rm -r /om2/user/daeda/software/texlive
+		# rm -r /home/daeda/texlive-config/.texlive/texmf-config
 
 cat > texlive.profile << EOL
 # selected_scheme scheme-small

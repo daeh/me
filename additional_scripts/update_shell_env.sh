@@ -170,41 +170,43 @@ tlmgr update --all
 
 ### tb_webppl
 
-nvm ls-remote
-node -v
+fnm ....
 
-nvm --version
-nvm ls
-npm list -g --depth=0
+# nvm ls-remote
+# node -v
+
+# nvm --version
+# nvm ls
+# npm list -g --depth=0
 
 
-prev_ver=$(nvm current)
-nvm install node --reinstall-packages-from=node --latest-npm
-### or e.g. nvm install 20.13.1 --reinstall-packages-from=17.0.0 --latest-npm
+# prev_ver=$(nvm current)
+# nvm install node --reinstall-packages-from=node --latest-npm
+# ### or e.g. nvm install 20.13.1 --reinstall-packages-from=17.0.0 --latest-npm
 
-### double check that new_ver is set
-new_ver=$(nvm current)
-nvm ls
-nvm alias default "$new_ver"
-# nvm uninstall "$prev_ver"
+# ### double check that new_ver is set
+# new_ver=$(nvm current)
+# nvm ls
+# nvm alias default "$new_ver"
+# # nvm uninstall "$prev_ver"
 
-nvm ls
-npm list -g --depth=0
+# nvm ls
+# npm list -g --depth=0
 
-npm outdated -g --depth=0
+# npm outdated -g --depth=0
 
-#
+# #
 
-npm install -g npm@latest
-#
-npm update -g corepack
-# npm update -g eslint
-# npm update -g eslint_d
-npm update -g jshint
-# npm update -g prettier
-npm update -g webppl
+# npm install -g npm@latest
+# #
+# npm update -g corepack
+# # npm update -g eslint
+# # npm update -g eslint_d
+# npm update -g jshint
+# # npm update -g prettier
+# npm update -g webppl
 
-npm outdated --prefix ~/.webppl --depth=0
-npm update -g webppl
-npm install --prefix ~/.webppl webppl-json --force
+# npm outdated --prefix ~/.webppl --depth=0
+# npm update -g webppl
+# npm install --prefix ~/.webppl webppl-json --force
 

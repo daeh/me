@@ -6,14 +6,14 @@ ps -p $$
 echo "........."
 
 if [ -f /etc/os-release ]; then
-    # Get the distribution ID
-    DISTRO_ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
+	# Get the distribution ID
+	DISTRO_ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
 	DISTRO_VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
 	# cat /etc/os-release
 	# hostnamectl
 	# echo $(rpm -E "%{rhel}")
 else
-    echo "Cannot determine OS distribution"
+	echo "Cannot determine OS distribution"
 fi
 
 # case "$DISTRO_ID" in
@@ -55,55 +55,46 @@ source /usr/share/Modules/init/zsh ### load the 'module' command for the current
 # export LD_LIBRARY_PATH=/home/daeda/me/dependencies/ncurses/lib:$LD_LIBRARY_PATH
 
 
+CENTOS_DIR="/home/daeda/me7"
+ROCKEY_DIR="/home/daeda/me"
+
 # Append different Zsh paths based on OS
 case "$DISTRO_ID" in
 	"centos")
 		# Add Zsh path for CentOS 7
-		remove_from_path "/home/daeda/me/zsh/bin"
-		remove_from_path "/home/daeda/me/tmux/bin"
-		remove_from_path "/home/daeda/me/vim/bin"
-        remove_from_path "/home/daeda/me/git/bin"
-		add_to_path_if_not_exists "/home/daeda/me7/zsh/bin:/home/daeda/me7/tmux/bin:/home/daeda/me7/vim/bin:/home/daeda/me7/git/bin"
-
-		# add_to_path "/home/daeda/me7/zsh/bin"
-		# add_to_path "/home/daeda/me/vim/bin"
-		# add_to_path "/home/daeda/me/tmux/bin"
-		# add_to_path "/home/daeda/me/git/bin"
-		# remove_from_path "/home/daeda/me/zsh/bin"
+		remove_from_path "${ROCKEY_DIR}/zsh/bin"
+		remove_from_path "${ROCKEY_DIR}/tmux/bin"
+		remove_from_path "${ROCKEY_DIR}/vim/bin"
+		remove_from_path "${ROCKEY_DIR}/git/bin"
+		add_to_path_if_not_exists "${CENTOS_DIR}/zsh/bin:${CENTOS_DIR}/tmux/bin:${CENTOS_DIR}/vim/bin:${CENTOS_DIR}/git/bin"
 
 		module unload openmind8/gcc/12.2.0
 		module load openmind/gcc/12.2.0
 
-		export DEFAULT_TMUX_SHELL="/home/daeda/me7/zsh/bin/zsh"
-		export ME_PATH="/home/daeda/me7"
+		export DEFAULT_TMUX_SHELL="${CENTOS_DIR}/zsh/bin/zsh"
+		export ME_PATH="${CENTOS_DIR}"
 		printf "Loaded Centos 7 paths\n"
 		;;
 	"rocky")
 		# Add Zsh path for Rocky 8
-		remove_from_path "/home/daeda/me7/zsh/bin"
-		remove_from_path "/home/daeda/me7/tmux/bin"
-		remove_from_path "/home/daeda/me7/vim/bin"
-        remove_from_path "/home/daeda/me7/git/bin"
-		add_to_path_if_not_exists "/home/daeda/me/zsh/bin:/home/daeda/me/tmux/bin:/home/daeda/me/vim/bin:/home/daeda/me/git/bin"
-
-		# add_to_path "/home/daeda/me/zsh/bin"
-		# add_to_path "/home/daeda/me/vim/bin"
-		# add_to_path "/home/daeda/me/tmux/bin"
-		# add_to_path "/home/daeda/me/git/bin"
-		# remove_from_path "/home/daeda/me7/zsh/bin"
+		remove_from_path "${CENTOS_DIR}/zsh/bin"
+		remove_from_path "${CENTOS_DIR}/tmux/bin"
+		remove_from_path "${CENTOS_DIR}/vim/bin"
+		remove_from_path "${CENTOS_DIR}/git/bin"
+		add_to_path_if_not_exists "${ROCKEY_DIR}/zsh/bin:${ROCKEY_DIR}/tmux/bin:${ROCKEY_DIR}/vim/bin:${ROCKEY_DIR}/git/bin"
 		
 		module unload openmind/gcc/12.2.0
 		module load openmind8/gcc/12.2.0
 
-		export DEFAULT_TMUX_SHELL=/home/daeda/me/zsh/bin/zsh
-		export ME_PATH=/home/daeda/me
+		export DEFAULT_TMUX_SHELL="${ROCKEY_DIR}/zsh/bin/zsh"
+		export ME_PATH="${ROCKEY_DIR}"
 		printf "Loaded Rocky 8 paths\n"
 		;;
 	*)
 		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
-		add_to_path_if_not_exists "/home/daeda/me/zsh/bin:/home/daeda/me/tmux/bin:/home/daeda/me/vim/bin:/home/daeda/me/git/bin"
-		export DEFAULT_TMUX_SHELL=/home/daeda/me/zsh/bin/zsh
-		export ME_PATH=/home/daeda/me
+		add_to_path_if_not_exists "${ROCKEY_DIR}/zsh/bin:${ROCKEY_DIR}/tmux/bin:${ROCKEY_DIR}/vim/bin:${ROCKEY_DIR}/git/bin"
+		export DEFAULT_TMUX_SHELL="${ROCKEY_DIR}/zsh/bin/zsh"
+		export ME_PATH="${ROCKEY_DIR}"
 		printf "Loaded default paths\n"
 		;;
 esac
@@ -112,15 +103,16 @@ esac
 ### For Astral UV and UVX ###
 ### adds $HOME/.local/bin to PATH (if not already there), which is where Astral UV and UVX are installed
 if [ -f /etc/bashrc ]; then
-  . "$HOME/.local/bin/env"
+	. "$HOME/.local/bin/env"
 fi
 
 
 # fnm
 FNM_PATH="/home/daeda/.local/share/fnm"
 if [ -d "$FNM_PATH" ]; then
-  export PATH="$FNM_PATH:$PATH"
-  eval "$(fnm env --corepack-enabled --shell zsh)"
+	export FNM_MULTISHELL_PATH="$HOME/.cache/fnm_multishell"
+	export PATH="$FNM_PATH:$PATH"
+	eval "$(fnm env --corepack-enabled --shell zsh)"
 fi
 
 
