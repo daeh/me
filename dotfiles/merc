@@ -5,6 +5,31 @@ echo "Current SHELL: $0"
 ps -p $$
 echo "........."
 
+if [ -f /etc/os-release ]; then
+    # Get the distribution ID
+    DISTRO_ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
+	DISTRO_VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
+	# cat /etc/os-release
+	# hostnamectl
+	# echo $(rpm -E "%{rhel}")
+else
+    echo "Cannot determine OS distribution"
+fi
+
+# case "$DISTRO_ID" in
+# 	"centos")
+# 		echo "This is CentOS"
+# 		# CentOS specific commands here
+# 		;;
+# 	"rocky")
+# 		echo "This is Rocky Linux"
+# 		# Rocky Linux specific commands here
+# 		;;
+# 	*)
+# 		echo "This is neither CentOS nor Rocky Linux"
+# 		;;
+# esac
+
 add_to_path_if_not_exists() {
 	for dir in $(echo "$1" | tr ":" "\n"); do
 		if [[ ":${PATH}:" != *":${dir}:"* ]]; then
@@ -22,16 +47,17 @@ remove_from_path() {
 	# echo $(echo "$PATH" | sed "s#:$part##g; s#$part:##g; s#^$part\$##g")
 }
 
-# Determine CentOS version
-centos_version=$(rpm -E "%{rhel}")
+printf "\nLoading MERC for %s %s\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
 
-printf "\nLoading MERC for Centos %s\n" "${centos_version}"
+
+source /usr/share/Modules/init/zsh ### load the 'module' command for the current shell
 
 # export LD_LIBRARY_PATH=/home/daeda/me/dependencies/ncurses/lib:$LD_LIBRARY_PATH
 
-# Append different Zsh paths based on CentOS version
-case $centos_version in
-	7)
+
+# Append different Zsh paths based on OS
+case "$DISTRO_ID" in
+	"centos")
 		# Add Zsh path for CentOS 7
 		remove_from_path "/home/daeda/me/zsh/bin"
 		remove_from_path "/home/daeda/me/tmux/bin"
@@ -52,8 +78,8 @@ case $centos_version in
 		export ME_PATH="/home/daeda/me7"
 		printf "Loaded Centos 7 paths\n"
 		;;
-	8)
-		# Add Zsh path for CentOS 8
+	"rocky")
+		# Add Zsh path for Rocky 8
 		remove_from_path "/home/daeda/me7/zsh/bin"
 		remove_from_path "/home/daeda/me7/tmux/bin"
 		remove_from_path "/home/daeda/me7/vim/bin"
@@ -71,10 +97,10 @@ case $centos_version in
 
 		export DEFAULT_TMUX_SHELL=/home/daeda/me/zsh/bin/zsh
 		export ME_PATH=/home/daeda/me
-		printf "Loaded Centos 8 paths\n"
+		printf "Loaded Rocky 8 paths\n"
 		;;
 	*)
-		printf "Unknown CentOS version: %s. Default settings will be applied.\n" $centos_version
+		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
 		add_to_path_if_not_exists "/home/daeda/me/zsh/bin:/home/daeda/me/tmux/bin:/home/daeda/me/vim/bin:/home/daeda/me/git/bin"
 		export DEFAULT_TMUX_SHELL=/home/daeda/me/zsh/bin/zsh
 		export ME_PATH=/home/daeda/me
@@ -83,5 +109,19 @@ case $centos_version in
 esac
 
 
-printf "\nPATH :: \n%s\n\n" "${PATH}"
+### For Astral UV and UVX ###
+### adds $HOME/.local/bin to PATH (if not already there), which is where Astral UV and UVX are installed
+if [ -f /etc/bashrc ]; then
+  . "$HOME/.local/bin/env"
+fi
 
+
+# fnm
+FNM_PATH="/home/daeda/.local/share/fnm"
+if [ -d "$FNM_PATH" ]; then
+  export PATH="$FNM_PATH:$PATH"
+  eval "$(fnm env --corepack-enabled --shell zsh)"
+fi
+
+
+printf "\nPATH :: \n%s\n\n" "${PATH}"

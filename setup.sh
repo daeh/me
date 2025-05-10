@@ -4,43 +4,58 @@
 # exit on error
 set -e
 
-### check for centos 8 Rocky
+### check for Rocky 8
 ### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 -w node092 --pty zsh
-### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 -w node092 --pty zsh --constraint=rocky8
+### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 -w node092 --pty zsh
+# srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 --constraint=rocky8 --pty zsh
 ### lsb_release -d
 
-### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 -w node092 --pty bash
-### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 -w node092 --pty bash --constraint=rocky8
+### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 --constraint=centos7 --pty bash
+### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 --constraint=rocky8 --pty bash
 ### lsb_release -d
+
+### make sure we're in bash
+echo "Current SHELL: $0"
+ps -p $$
 
 source /usr/share/Modules/init/bash
-
-centos_version=$(rpm -E "%{rhel}")
-
-printf "\nLoading ZSH for Centos %s\n" "${centos_version}"
-
 # export LD_LIBRARY_PATH=/home/daeda/me/dependencies/ncurses/lib:$LD_LIBRARY_PATH
 
-DEFAULT_INSTALL_TO=${ME_PATH:-$HOME/me}
-printf "\Installing to %s\n" "${DEFAULT_INSTALL_TO}"
+if [ -f /etc/os-release ]; then
+    # Get the distribution ID
+    DISTRO_ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
+	DISTRO_VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
+	# cat /etc/os-release
+	# hostnamectl
+	# echo $(rpm -E "%{rhel}")
+else
+    echo "Cannot determine OS distribution"
+fi
 
-### openmind specific modules
-case $centos_version in
-	7)
+printf "\nFound OS %s %s\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
+
+case "$DISTRO_ID" in
+	"centos")
 		module load openmind/gcc/12.2.0
-		# module load openmind/gcc/11.1.0
-		DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me7}"
+		DEFAULT_INSTALL_TO="${HOME}/me7"
+		printf "\n\nCentos 7 detected\n\n"
 		;;
-	8)
+	"rocky")
 		module load openmind8/gcc/12.2.0
-		DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me}"
+		DEFAULT_INSTALL_TO="${HOME}/me"
+		printf "\n\Rocky 8 detected\n\n"
 		;;
 	*)
-		echo "Unknown CentOS version: $centos_version. Default settings will be applied."
-		module load openmind8/gcc/12.2.0
+		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
 		DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me_default}"
 		;;
 esac
+
+
+DEFAULT_INSTALL_TO=${ME_PATH:-$HOME/me}
+
+
+printf "\nInstalling to %s\n\n" "${DEFAULT_INSTALL_TO}"
 
 module load openmind/isl/0.23
 module load openmind/mpfr/4.1.0  openmind/mpc/1.2.1 
@@ -48,26 +63,45 @@ module load openmind/make/4.3
 
 LIBEVENT_VERSION=2.1.12-stable # https://libevent.org/
 NCURSES_VERSION=6.5 # https://invisible-island.net/ncurses/announce.html#h2-release-notes
-CURL_VERSION=8.7.1 # https://curl.haxx.se/download.html
+CURL_VERSION=8.13.0 # https://curl.se/download.html
 OPENSSL_VERSION=3.5.0 # https://www.openssl.org/source/
 GIT_VERSION=2.49.0 # https://git-scm.com/download/linux
 GIT_MIN_VERSION=2.49
 TMUX_VERSION=3.5a # https://github.com/tmux/tmux/wiki
 VIM_VERSION=9.1.1374 # https://github.com/vim/vim/tags
 ZSH_VERSION=5.9 # http://zsh.sourceforge.net/releases.html
-NVM_VERSION=0.30.3 # https://github.com/nvm-sh/nvm/releases
-NODE_VERSION=22.15.0 # https://nodejs.org/en/download
+# NVM_VERSION=0.30.3 # https://github.com/nvm-sh/nvm/releases
+# NODE_VERSION=22.15.0 # https://nodejs.org/en/download
 
 
-read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
+#### WARNING - DOES NOT WORK
 # INSTALL_TO=${INSTALL_TO:-$DEFAULT_INSTALL_TO}
-: ${INSTALL_TO:="$DEFAULT_INSTALL_TO"}
+read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
+INSTALL_TO=${INSTALL_TO:-"$DEFAULT_INSTALL_TO"}
 
 echo "Installing to: $INSTALL_TO"
 echo ""
 sleep 1
 
+# Step 2: Prompt for user input with the default value shown
+read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
+
+# Step 3: Set INSTALL_TO to DEFAULT_INSTALL_TO if the input was empty
+if [ -z "$INSTALL_TO" ]; then
+    INSTALL_TO="$DEFAULT_INSTALL_TO"
+fi
+
+# Step 4: Confirm the installation path
+printf "Installing to: %s\n" "$INSTALL_TO"
+
+# INSTALL_TO="/home/daeda/me"
+
+
 TEMP_DIR=$INSTALL_TO/temp_install
+### for clean install ###
+# rm -r $TEMP_DIR 
+# rm -r "${INSTALL_TO}/dependencies"
+### ###
 mkdir -p $INSTALL_TO $TEMP_DIR $INSTALL_TO/dependencies
 cd "${TEMP_DIR}" || exit
 
@@ -80,6 +114,15 @@ which gcc || sudo -n yum groupinstall -y "Development Tools" || ( echo no gcc; e
 version_gt() {
 	test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1";
 }
+
+
+# INSTALL_TO=
+# TEMP_DIR=
+echo "INSTALL_TO :: $INSTALL_TO"
+echo "TEMP_DIR :: $TEMP_DIR"
+echo "DISTRO_ID :: $DISTRO_ID"
+echo "DISTRO_VERSION :: $DISTRO_VERSION"
+echo "path_extra :: $path_extra"
 
 # ---------------------- Dependencies ------------------------
 
@@ -99,8 +142,8 @@ fi
 ############
 # ncurses  # (for tmux, zsh)
 ############
-case $centos_version in
-	7)
+case "$DISTRO_ID" in
+	"centos")
 		############
 		# ncurses Centos 7 # (for tmux, zsh)
 		############
@@ -114,9 +157,9 @@ case $centos_version in
 			cd "${TEMP_DIR}"
 		fi
 		;;
-	8)
+	"rocky")
 		############
-		# ncurses Centos 8 # (for tmux, zsh)
+		# ncurses Rocky 8 # (for tmux, zsh)
 		############
 		if [ ! -d $INSTALL_TO/dependencies/ncurses ]; then
 			cd "${TEMP_DIR}"
@@ -129,7 +172,7 @@ case $centos_version in
 		fi
 		;;
 	*)
-		echo "Unknown CentOS version: $centos_version. Default settings will be applied."
+		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
 		exit 1
 		;;
 esac
@@ -143,7 +186,8 @@ esac
 ############
 #   curl   # (for git)
 ############
-# If curl is not already installled...
+### module add openmind/curl/7.85.0
+# If curl is not already installed...
 which curl-config || \
 sudo -n yum install -y curl-devel || \
 if [ ! -d $INSTALL_TO/dependencies/curl ]; then
@@ -174,17 +218,17 @@ fi
 # includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncurses"
 # libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib -L${INSTALL_TO}/dependencies/libevent/include -L${INSTALL_TO}/dependencies/ncurses/include -L${INSTALL_TO}/dependencies/ncurses/include/ncurses"
 
-case $centos_version in
-	7)
+case "$DISTRO_ID" in
+	"centos")
 		includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncurses"
 		libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib"
 		;;
-	8)
+	"rocky")
 		includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncursesw"
 		libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib"
 		;;
 	*)
-		echo "Unknown CentOS version: $centos_version. Default settings will be applied."
+		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
 		exit 1
 		;;
 esac
@@ -266,11 +310,11 @@ path_extra="${INSTALL_TO}/git/bin:$path_extra"
 ############
 #  rmate   #
 ############
-case $centos_version in
-	7)
+case "$DISTRO_ID" in
+	"centos")
 		echo "bypassing rmate install for centos 7"
 		;;
-	8)
+	"rocky")
 		if [ ! -f $INSTALL_TO/rmate/bin ]; then
 			cd "${INSTALL_TO}"
 			mkdir -p "${INSTALL_TO}/rmate/bin/"
@@ -282,7 +326,7 @@ case $centos_version in
 		# path_extra="${INSTALL_TO}/rmate/bin:$path_extra"
 		;;
 	*)
-		echo "Unknown CentOS version: $centos_version. Default settings will be applied."
+		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
 		exit 1
 		;;
 esac
@@ -295,11 +339,11 @@ esac
 # ------------- Extensions / Config -------------------
 export PATH=$path_extra$PATH
 
-case $centos_version in
-	7)
+case "$DISTRO_ID" in
+	"centos")
 		echo "bypassing install for centos 7"
 		;;
-	8)
+	"rocky")
 		# Dotfiles
 		if [ ! -d $INSTALL_TO/me ]; then
 			git clone "https://github.com/daeh/me.git" "${INSTALL_TO}/me"
@@ -331,7 +375,7 @@ case $centos_version in
 		done
 		;;
 	*)
-		echo "Unknown CentOS version: $centos_version. Default settings will be applied."
+		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
 		exit 1
 		;;
 esac
@@ -395,6 +439,12 @@ tmux kill-server
 	mkdir uv
 	cd uv
 
+	curl -LsSf https://astral.sh/uv/install.sh | bash ### works
+	# curl -LsSf https://astral.sh/uv/install.sh | bash
+	# curl -LsSf https://astral.sh/uv/install.sh | zsh
+	### 
+	# https://docs.astral.sh/uv/getting-started/installation/
+
 	# curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --help
 
 	# curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/custom/path" sh
@@ -406,9 +456,9 @@ tmux kill-server
 	#### installs to ~/.local/bin/uv
 
 	#### UPDATE INSTALL PATH
-	curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.5.26/uv-installer.sh | env UV_INSTALL_DIR="/custom/path" zsh
+	# curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.7.3/uv-installer.sh | env UV_INSTALL_DIR="${HOME}/me7" zsh
 	#### CHECK THAT THIS IS WANTED
-	source $HOME/.local/bin/env zsh
+	# source $HOME/.local/bin/env zsh
 
 # fi
 
@@ -434,8 +484,14 @@ fi
 # FNM      #
 ############
 # https://github.com/Schniz/fnm
-curl -fsSL https://fnm.vercel.app/install | zsh
-
+curl -fsSL https://fnm.vercel.app/install | bash
+### THEN :: install node ###
+# FNM_PATH="${HOME}/.local/share/fnm"
+# if [ -d "$FNM_PATH" ]; then
+#   export PATH="$FNM_PATH:$PATH"
+#   eval "`fnm env`"
+# fi
+# eval "$(fnm env --corepack-enabled --version-file-strategy=recursive --shell zsh)"
 
 # ############
 # # NVM / Node.js
@@ -452,7 +508,7 @@ curl -fsSL https://fnm.vercel.app/install | zsh
 
 # 	### GET code from local script to finish installing node, webppl, etc.
 
-# 	### IMPORTANT - remove paths from profile
+# 	### important - remove paths from profile
 
 # 	# export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 # 	# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm

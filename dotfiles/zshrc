@@ -1,5 +1,6 @@
-### tweak for centos 7
-
+### For Bash OM admin said:
+### The new OS Rocky 8 is installed on the new nodes (>=100), while the old OS CentOS 7 is used on the old nodes (<100). In order to make applications work smoothly on both OS, especially to resolve the issues related to module, add the following lines in the .bashrc file in your home directory.
+### Am adding the zsh version, in case it's needed
 if [ -f /etc/zshrc ]; then
     . /etc/zshrc
 fi
@@ -52,8 +53,6 @@ source $HOME/.merc
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
-
-source $HOME/.me.conf
 
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
@@ -177,4 +176,5 @@ source $ZSH/oh-my-zsh.sh
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-. "$HOME/.local/bin/env" ### maybe?
+
+source $HOME/.me.conf
