@@ -154,7 +154,7 @@ case "$DISTRO_ID" in
 		;;
 	*)
 		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
-		# add_to_path_if_not_exists "${ROCKEY_DIR}/zsh/bin:${ROCKEY_DIR}/tmux/bin:${ROCKEY_DIR}/vim/bin:${ROCKEY_DIR}/git/bin"
+		# append_to_path_if_not_exists "${ROCKEY_DIR}/zsh/bin:${ROCKEY_DIR}/tmux/bin:${ROCKEY_DIR}/vim/bin:${ROCKEY_DIR}/git/bin"
 		# export DEFAULT_TMUX_SHELL="${ROCKEY_DIR}/zsh/bin/zsh"
 		# export ME_PATH="${ROCKEY_DIR}"
 		# printf "Loaded default paths\n"
@@ -184,7 +184,7 @@ if [ -d "$FNM_PATH" ]; then
 	export FNM_MULTISHELL_PATH="$HOME/.cache/fnm_multishell"
 	mkdir -p "${FNM_MULTISHELL_PATH}"
 	# export PATH="$FNM_PATH:$PATH"
-	add_to_path_if_not_exists "${FNM_PATH}"
+	append_to_path_if_not_exists "${FNM_PATH}"
 	eval "$(fnm env --corepack-enabled --shell zsh)"
 fi
 
