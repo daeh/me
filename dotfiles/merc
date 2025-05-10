@@ -181,11 +181,16 @@ fi
 # fnm
 FNM_PATH="/home/daeda/.local/share/fnm"
 if [ -d "$FNM_PATH" ]; then
-	export FNM_MULTISHELL_PATH="$HOME/.cache/fnm_multishell"
-	mkdir -p "${FNM_MULTISHELL_PATH}"
+	# export FNM_MULTISHELL_PATH="$HOME/.cache/fnm_multishell"
+	# export FNM_MULTISHELL_PATH="${FNM_MULTISHELL_PATH:-$HOME/.cache/fnm_multishell}"
+	# mkdir -p "${FNM_MULTISHELL_PATH}"
 	# export PATH="$FNM_PATH:$PATH"
-	append_to_path_if_not_exists "${FNM_PATH}"
-	eval "$(fnm env --corepack-enabled --shell zsh)"
+	
+	# prepend_to_path_if_not_exists "$FNM_MULTISHELL_PATH/bin"
+	append_to_path_if_not_exists "$FNM_PATH"
+	eval "$(XDG_RUNTIME_DIR='${HOME}/.cache/fnm_multishell' fnm env --corepack-enabled --shell zsh)"
+
+	# FNM_DIR
 fi
 
 
