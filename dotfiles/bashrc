@@ -14,9 +14,37 @@ if [ -f /etc/bashrc ]; then
     . /etc/bashrc
 fi
 
-# source $HOME/.merc
+###
+### make custom zsh available ###
+###
 
-# export PATH=/home/daeda/me/zsh/bin:/home/daeda/me/git/bin:$PATH
+if [ -f /etc/os-release ]; then
+    # Get the distribution ID
+    DISTRO_ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
+    DISTRO_VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
+    # cat /etc/os-release
+    # hostnamectl
+    # echo $(rpm -E "%{rhel}")
+fi
+case "$DISTRO_ID" in
+    "centos")
+        if [[ -x "${HOME}/me7/zsh/bin/zsh" ]]; then
+            # export SHELL="$HOME/me7/zsh/bin/zsh"
+            # exec "$HOME/me7/zsh/bin/zsh" -l
+            export PATH=${HOME}/me7/zsh/bin:$PATH
+        fi
+        ;;
+    "rocky")
+        if [[ -x "${HOME}/me/zsh/bin/zsh" ]]; then
+            # export SHELL="$HOME/me/zsh/bin/zsh"
+            # exec "$HOME/me/zsh/bin/zsh" -l
+            export PATH=${HOME}/me/zsh/bin:$PATH
+        fi
+        ;;
+    *)
+        ###
+        ;;
+esac
 
 ### For Astral UV and UVX ###
 ### adds $HOME/.local/bin to PATH (if not already there), which is where Astral UV and UVX are installed
