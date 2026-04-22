@@ -1039,7 +1039,7 @@ print_summary() {
     printf '  git:  %s\n' "$("$ME_PREFIX/bin/git" --version 2>/dev/null || echo '?')"
     printf '  jj:   %s\n' "$("$ME_PREFIX/bin/jj" --version 2>/dev/null || echo '?')"
     printf '  task: %s\n' "$("$ME_PREFIX/bin/task" --version 2>/dev/null || echo '?')"
-    printf '  hx:   %s\n' "$("$ME_PREFIX/bin/hx" --version 2>/dev/null | head -1 || echo '?')"
+    printf '  hx:   %s\n' "$(HELIX_RUNTIME="$ME_PREFIX/opt/helix/runtime" "$ME_PREFIX/bin/hx" --version 2>&1 | head -1 || echo '?')"
     printf '  uv:   %s\n' "$("$ME_PREFIX/bin/uv" --version 2>/dev/null || echo '?')"
     printf '  fnm:  %s\n' "$("$ME_PREFIX/bin/fnm" --version 2>/dev/null || echo '?')"
     local nodebin
