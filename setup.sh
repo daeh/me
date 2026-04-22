@@ -3,8 +3,8 @@
 #
 # Target: MIT ORCD (Rocky Linux 8.10+). Not portable to other distros.
 #
-# This is a thin wrapper around scripts/lib.sh — all the real logic lives
-# there. You can run any single phase standalone:
+# Thin wrapper around scripts/lib.sh — all the real logic lives there.
+# You can run any single phase standalone:
 #
 #   bash scripts/preflight.sh
 #   bash scripts/install_deps.sh
@@ -16,10 +16,11 @@
 # For interactive debugging, source lib.sh once and call any function by name:
 #
 #   source scripts/lib.sh
-#   parse_flags              # optional; sets defaults if no args
-#   run_preflight            # or: preflight_os, preflight_lmod, ...
-#   pick_build_dir
-#   install_ncurses          # any single install_* function
+#   parse_flags                # optional; defaults stand
+#   run_install_deps           # self-preps (preflight, mkdir, pick_build_dir)
+#   install_ncurses            # or any single install_* function
+#                              # (call `_phase_prep` first if you haven't
+#                              # already run a run_* function this session)
 #
 # Layout ($ME_PREFIX defaults to $HOME/.melocal):
 #   $ME_PREFIX/
@@ -57,17 +58,12 @@ if [[ "$FORCE_REBUILD_ALL" == 1 && -x "$ME_PREFIX/uninstall.sh" ]]; then
     bash "$ME_PREFIX/uninstall.sh" || true
 fi
 
-run_preflight
-mkdir -p "$ME_PREFIX/bin" "$ME_PREFIX/opt"
-pick_build_dir
-
 [[ "$SKIP_DEPS"  == 1 ]] || run_install_deps
 [[ "$SKIP_TOOLS" == 1 ]] || run_install_tools
 [[ "$SKIP_LANGS" == 1 ]] || run_install_langs
 
 if [[ "$SKIP_SHELL" != 1 ]]; then
-    # Tell clone_or_update_repo about our local checkout so it can link rather
-    # than re-clone when setup.sh is run from inside the repo.
+    # Let clone_or_update_repo link the local repo rather than re-cloning.
     export REPO_LOCAL_CHECKOUT="$HERE"
     run_install_shell
 fi

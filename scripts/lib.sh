@@ -453,7 +453,18 @@ ncurses_ldflags() {
     printf -- '-Wl,-rpath,%s/lib -L%s/lib' "$n" "$n"
 }
 
+# Self-sufficient phase runners: safe to call directly after `source lib.sh`
+# without any prep. `ensure_preflight` / `pick_build_dir` / the `mkdir` are
+# all idempotent so repeated calls across phases are free.
+
+_phase_prep() {
+    ensure_preflight
+    mkdir -p "$ME_PREFIX/bin" "$ME_PREFIX/opt"
+    pick_build_dir
+}
+
 run_install_deps() {
+    _phase_prep
     install_libevent
     install_ncurses
     install_openssl
@@ -507,10 +518,16 @@ install_tmux() {
     rm -rf "$src"
     extract "$tar" "$src"
     local le="$ME_PREFIX/opt/libevent"
+    # LIBS="-lutil" forces autoconf's AC_SEARCH_LIBS to resolve forkpty in
+    # libutil, which sets HAVE_FORKPTY. Without this, compat.h re-declares
+    # forkpty with a non-const signature that collides with glibc 2.28+'s
+    # const-qualified <pty.h> prototype — a known tmux 3.6 build issue on
+    # Rocky/RHEL 8.
     (
         cd "$src"
         CPPFLAGS="-I$le/include $(ncurses_flags)" \
         LDFLAGS="-L$le/lib $(ncurses_ldflags)" \
+        LIBS="-lutil" \
             ./configure --prefix="$ME_PREFIX"
         make -j"$(nproc)"
         make install
@@ -645,6 +662,7 @@ install_helix() {
 }
 
 run_install_tools() {
+    _phase_prep
     install_zsh
     install_tmux
     install_vim
@@ -752,6 +770,7 @@ install_rmate() {
 }
 
 run_install_langs() {
+    _phase_prep
     install_uv
     install_fnm
     install_node_yarn
@@ -905,6 +924,7 @@ install_tpm() {
 }
 
 run_install_shell() {
+    _phase_prep
     clone_or_update_repo
     install_prezto
     install_p10k
@@ -976,6 +996,9 @@ EOF
 }
 
 run_finalize() {
+    # pick_build_dir so cleanup_build_on_success knows what to remove; harmless
+    # if $BUILD_DIR is already set.
+    pick_build_dir
     write_uninstaller
     cleanup_build_on_success
     print_summary

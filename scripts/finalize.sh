@@ -7,7 +7,4 @@ HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=lib.sh
 source "$HERE/lib.sh"
 parse_flags "$@"
-# pick_build_dir so cleanup_build_on_success knows what to remove (noop if the
-# build dir was never used).
-pick_build_dir
 run_finalize

@@ -12,5 +12,4 @@ source "$HERE/lib.sh"
 parse_flags "$@"
 # Pass the local checkout so clone_or_update_repo can use it.
 export REPO_LOCAL_CHECKOUT="${REPO_LOCAL_CHECKOUT:-$(cd "$HERE/.." && pwd)}"
-ensure_preflight   # cheap; Lmod/gcc not actually needed here but harmless
 run_install_shell
