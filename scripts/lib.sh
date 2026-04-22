@@ -936,7 +936,7 @@ install_dotfiles() {
     dotfile_link merc           "$HOME/.merc"
     dotfile_link me.conf        "$HOME/.me.conf"
     dotfile_link tmux/tmux.conf     "${XDG_CONFIG_HOME:-$HOME/.config}/tmux/tmux.conf"
-    dotfile_link vimrc          "$HOME/.vimrc"
+    dotfile_link vim/vimrc          "${XDG_CONFIG_HOME:-$HOME/.config}/vim/vimrc"
     dotfile_link git/config         "${XDG_CONFIG_HOME:-$HOME/.config}/git/config"
     dotfile_link jj/config.toml     "${XDG_CONFIG_HOME:-$HOME/.config}/jj/config.toml"
     dotfile_link bashrc         "$HOME/.bashrc"
