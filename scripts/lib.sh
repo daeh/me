@@ -378,19 +378,7 @@ install_ncurses() {
         make -j"$(nproc)"
         make install
     )
-
-    # --enable-widec builds libncursesw but not libncurses. Consumers like
-    # tmux add -lncurses to the link line in addition to -lncursesw; on Rocky 8
-    # without ncurses-devel the system's libncurses.so symlink is also absent,
-    # so ld can't resolve -lncurses anywhere. Alias the widec libs under their
-    # non-widec names in our prefix.
-    local lib
-    for lib in ncurses tinfo form menu panel; do
-        if [[ -f "$opt/lib/lib${lib}w.so" && ! -e "$opt/lib/lib${lib}.so" ]]; then
-            ln -s "lib${lib}w.so" "$opt/lib/lib${lib}.so"
-        fi
-    done
-
+    ensure_ncurses_aliases
     touch "$sentinel"
 }
 
@@ -466,6 +454,21 @@ ncurses_ldflags() {
     printf -- '-Wl,-rpath,%s/lib -L%s/lib' "$n" "$n"
 }
 
+# --enable-widec builds libncursesw but not libncurses. Consumers like tmux
+# add -lncurses to the link line anyway; Rocky 8 without ncurses-devel is
+# also missing the system's libncurses.so symlink, so ld fails to resolve
+# -lncurses anywhere. Alias the widec libs under their non-widec names in
+# our prefix. Idempotent; safe to call before any consumer build.
+ensure_ncurses_aliases() {
+    local opt="$ME_PREFIX/opt/ncurses" lib
+    [[ -d "$opt/lib" ]] || return 0
+    for lib in ncurses tinfo form menu panel; do
+        if [[ -f "$opt/lib/lib${lib}w.so" && ! -e "$opt/lib/lib${lib}.so" ]]; then
+            ln -s "lib${lib}w.so" "$opt/lib/lib${lib}.so"
+        fi
+    done
+}
+
 # Self-sufficient phase runners: safe to call directly after `source lib.sh`
 # without any prep. `ensure_preflight` / `pick_build_dir` / the `mkdir` are
 # all idempotent so repeated calls across phases are free.
@@ -494,6 +497,7 @@ install_zsh() {
     [[ "$FORCE_REBUILD" == "$key" ]] && rm -f "$sentinel"
     needs_rebuild "$key" "$sentinel" || { info "zsh: already installed"; return 0; }
     step "Build: zsh $ZSH_VERSION"
+    ensure_ncurses_aliases
 
     local url="https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download"
     local tar="$BUILD_DIR/zsh-${ZSH_VERSION}.tar.xz"
@@ -521,6 +525,7 @@ install_tmux() {
     [[ "$FORCE_REBUILD" == "$key" ]] && rm -f "$sentinel"
     needs_rebuild "$key" "$sentinel" || { info "tmux: already installed"; return 0; }
     step "Build: tmux $TMUX_VERSION"
+    ensure_ncurses_aliases
 
     local url="https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz"
     local tar="$BUILD_DIR/tmux-${TMUX_VERSION}.tar.gz"
@@ -531,7 +536,7 @@ install_tmux() {
     rm -rf "$src"
     extract "$tar" "$src"
 
-    # Two-part workaround for tmux 3.6a on Rocky 8 + glibc 2.28+:
+    # Three-part workaround for tmux 3.6a on Rocky 8 + glibc 2.28+:
     #
     # 1. compat.h declares forkpty() with a non-const signature, unconditional
     #    on HAVE_FORKPTY, which conflicts with glibc's const-qualified <pty.h>
@@ -555,12 +560,20 @@ install_tmux() {
             > "$src/compat/forkpty-linux.c"
     fi
 
+    # 3. glibc's resolv.h defines b64_ntop/b64_pton as macros expanding to
+    #    __b64_ntop/__b64_pton. compat/base64.c picks up the macro (via a
+    #    transitive include) and emits the underscored symbols, but input.c /
+    #    tty.c / tty-keys.c call the un-underscored name and fail to link.
+    #    Force configure to NOT detect the system b64_ntop via its cache vars
+    #    so tmux uses its own compat implementation consistently.
     local le="$ME_PREFIX/opt/libevent"
     # LIBS="-lutil" lets the final link resolve forkpty against libutil, which
     # is what any real forkpty call in tmux will actually use (the stubbed
     # compat shim contributes no symbols).
     (
         cd "$src"
+        ac_cv_func_b64_ntop=no \
+        ac_cv_search_b64_ntop=no \
         CPPFLAGS="-I$le/include $(ncurses_flags)" \
         LDFLAGS="-L$le/lib $(ncurses_ldflags)" \
         LIBS="-lutil" \
