@@ -530,10 +530,18 @@ install_tmux() {
     fi
 
     local le="$ME_PREFIX/opt/libevent"
+    # LIBS="-lutil" lets autoconf's AC_SEARCH_LIBS([forkpty], [util]) resolve
+    # forkpty in libutil, which sets HAVE_FORKPTY=1. Without this, configure
+    # decides forkpty is missing and the Makefile expects compat/forkpty-linux.c
+    # which tmux doesn't ship (Linux is assumed to have forkpty in libutil).
+    # ac_cv_func_forkpty=yes is a belt-and-suspenders cache override in case
+    # AC_SEARCH_LIBS itself has problems in this environment.
     (
         cd "$src"
         CPPFLAGS="-I$le/include $(ncurses_flags)" \
         LDFLAGS="-L$le/lib $(ncurses_ldflags)" \
+        LIBS="-lutil" \
+        ac_cv_func_forkpty=yes \
             ./configure --prefix="$ME_PREFIX"
         make -j"$(nproc)"
         make install
