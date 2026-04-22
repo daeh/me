@@ -648,9 +648,10 @@ install_git() {
         make prefix="$ME_PREFIX" \
             CURLDIR="$c" OPENSSLDIR="$ssl" \
             LDFLAGS="-Wl,-rpath,$c/lib -Wl,-rpath,$ssl_lib -L$c/lib -L$ssl_lib" \
-            NO_GETTEXT=1 NO_PERL=1 \
+            NO_GETTEXT=1 NO_PERL=1 NO_EXPAT=1 NO_TCLTK=1 \
             -j"$(nproc)" all
-        make prefix="$ME_PREFIX" NO_GETTEXT=1 NO_PERL=1 install
+        make prefix="$ME_PREFIX" \
+            NO_GETTEXT=1 NO_PERL=1 NO_EXPAT=1 NO_TCLTK=1 install
     )
 }
 
