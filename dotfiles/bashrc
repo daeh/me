@@ -1,53 +1,26 @@
-### .bashrc --- sourced by interactive shells, not sourced by login shells
+# ~/.bashrc --- sourced for interactive non-login bash shells and by
+# ~/.bash_profile for login shells.
+# Avoid `echo` here; sbatch parses bash output and stray text breaks tools.
 
-### The .bash_profile is sourced automatically in a login shell, for example, when a user logs in to the Openmind head node or logs in to a compute node using ssh nodeXXX.
+# Rocky system bashrc.
+[[ -f /etc/bashrc ]] && . /etc/bashrc
 
-### The .bashrc is sourced automatically in a non-login shell, for example, when a user executes bash or gets on an interactive section using srun --pty bash or submits a batch job script using sbatch job.sh (if there is the first line #!/bin/bash in the job script).
+export ME_PREFIX="${ME_PREFIX:-$HOME/.melocal}"
 
-### these print commands break rsync
-# echo "LOADING .bashrc"
-# echo "Current SHELL: $0"
-
-### The new OS Rocky 8 is installed on the new nodes (>=100), while the old OS CentOS 7 is used on the old nodes (<100). In order to make applications work smoothly on both OS, especially to resolve the issues related to module, add the following lines in the .bashrc file in your home directory.
-
-if [ -f /etc/bashrc ]; then
-    . /etc/bashrc
-fi
-
-###
-### make custom zsh available ###
-###
-
-if [ -f /etc/os-release ]; then
-    # Get the distribution ID
-    DISTRO_ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
-    DISTRO_VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
-    # cat /etc/os-release
-    # hostnamectl
-    # echo $(rpm -E "%{rhel}")
-fi
-case "$DISTRO_ID" in
-    "centos")
-        if [[ -x "${HOME}/me7/zsh/bin/zsh" ]]; then
-            # export SHELL="$HOME/me7/zsh/bin/zsh"
-            # exec "$HOME/me7/zsh/bin/zsh" -l
-            export PATH=${HOME}/me7/zsh/bin:$PATH
-        fi
-        ;;
-    "rocky")
-        if [[ -x "${HOME}/me/zsh/bin/zsh" ]]; then
-            # export SHELL="$HOME/me/zsh/bin/zsh"
-            # exec "$HOME/me/zsh/bin/zsh" -l
-            export PATH=${HOME}/me/zsh/bin:$PATH
-        fi
-        ;;
-    *)
-        ###
-        ;;
-esac
-
-### For Astral UV and UVX ###
-### adds $HOME/.local/bin to PATH (if not already there), which is where Astral UV and UVX are installed
-# if [ -f /etc/bashrc ]; then
-#   . "$HOME/.local/bin/env"
-# fi
+# Prefer our built zsh if the user types `zsh`.
+_me_paths=(
+    "$ME_PREFIX/bin"
+    "$ME_PREFIX/bun/bin"
+    "$ME_PREFIX/python-default/bin"
+    "$HOME/.local/bin"
+)
+for _p in "${_me_paths[@]}"; do
+    if [[ -d "$_p" ]]; then
+        case ":$PATH:" in
+            *":$_p:"*) ;;
+            *) PATH="$_p:$PATH" ;;
+        esac
+    fi
+done
+unset _me_paths _p
+export PATH

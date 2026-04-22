@@ -1,665 +1,931 @@
-# Script to install git, vim, tmux, zsh locally
-# Original tmux install script: https://gist.github.com/ryin/3106801
+#!/usr/bin/env bash
+# setup.sh --- install zsh/tmux/vim/git/jj + uv/fnm/node/yarn/bun + prezto/p10k
+# under a single prefix that is trivially removable.
+#
+# Target: MIT ORCD (Rocky Linux 8.10+). Not portable to other distros.
+#
+# Layout:
+#   $ME_PREFIX/                       (default $HOME/.melocal)
+#   ├── bin/                          all installed tool binaries
+#   ├── lib/ include/ share/ man/     (from autotools installs)
+#   ├── opt/{libevent,ncurses,openssl,curl}/   isolated dep prefixes, rpath-linked
+#   ├── repo/                         this dotfiles repo
+#   ├── zprezto/ powerlevel10k/       zsh theme machinery
+#   ├── fnm/ bun/ python-default/     runtime installs
+#   ├── tmux-plugins/                 TPM + installed plugins
+#   ├── src/                          build workspace (removed on success)
+#   ├── manifest.txt                  list of $HOME/.<rc> symlinks created
+#   └── uninstall.sh                  self-extracting cleanup
+#
+# Strip + reinstall:
+#   bash $HOME/.melocal/uninstall.sh && bash /path/to/setup.sh
+#
+# Usage:
+#   bash setup.sh [--prefix=DIR] [--src=DIR] [--offline] [--verify-hashes]
+#                 [--skip-deps] [--skip-tools] [--skip-langs] [--skip-shell]
+#                 [--force-rebuild[=PKG]]
+#
+# Re-runs are idempotent; each phase is skipped if already installed.
 
-# exit on error
-set -e
+set -euo pipefail
+umask 022
 
-### check for Rocky 8
-### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 -w node092 --pty zsh
-### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 -w node092 --pty zsh
-# srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 --constraint=rocky8 --pty zsh
-### lsb_release -d
+# ============================================================================
+# Version pins (verified via live upstream lookups 2026-04-21).
+# When bumping a version, run once with --verify-hashes=0 to print the new
+# sha256 and paste it into the table below.
+# ============================================================================
 
-### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 --constraint=centos7 --pty bash
-### srun --cpus-per-task=6 --mem=25G --time=2-00:00:00 --constraint=rocky8 --pty bash
-### lsb_release -d
+LIBEVENT_VERSION=2.1.12-stable            # https://libevent.org/
+NCURSES_VERSION=6.6                       # https://invisible-island.net/ncurses/
+OPENSSL_VERSION=3.6.2                     # https://openssl-library.org/source/
+CURL_VERSION=8.19.0                       # https://curl.se/download.html
+ZSH_VERSION=5.9                           # https://zsh.sourceforge.io/
+TMUX_VERSION=3.6a                         # https://github.com/tmux/tmux/releases
+VIM_VERSION=9.2.0387                      # https://github.com/vim/vim/tags
+GIT_VERSION=2.54.0                        # https://git-scm.com/
+GIT_MIN_VERSION=2.54
+JJ_VERSION=0.40.0                         # https://github.com/jj-vcs/jj/releases
+PYTHON_VERSION=3.14                       # uv resolves patch; falls back to 3.13
 
-### make sure we're in bash
-echo "Current SHELL: $0"
-ps -p $$
+# Optional SHA256 verification table. Leave a cell empty to skip that file.
+# Populate after first successful install (the script prints each hash).
+declare -A SHA256=(
+    [libevent]=""
+    [ncurses]=""
+    [openssl]=""
+    [curl]=""
+    [zsh]=""
+    [tmux]=""
+    [vim]=""
+    [git]=""
+    [jj]=""
+)
 
-source /usr/share/Modules/init/bash
-# export LD_LIBRARY_PATH=/home/daeda/me/dependencies/ncurses/lib:$LD_LIBRARY_PATH
+# ============================================================================
+# Helpers
+# ============================================================================
 
-if [ -f /etc/os-release ]; then
-	# Get the distribution ID
-	DISTRO_ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
-	DISTRO_VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
-	# cat /etc/os-release
-	# hostnamectl
-	# echo $(rpm -E "%{rhel}")
+if [[ -t 1 ]]; then
+    _c_reset=$'\033[0m'
+    _c_red=$'\033[1;31m'
+    _c_green=$'\033[1;32m'
+    _c_yellow=$'\033[1;33m'
+    _c_blue=$'\033[1;34m'
 else
-	echo "Cannot determine OS distribution"
+    _c_reset=''; _c_red=''; _c_green=''; _c_yellow=''; _c_blue=''
 fi
 
-printf "\nFound OS %s %s\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
+info()  { printf '%s==>%s %s\n' "$_c_blue" "$_c_reset" "$*" >&2; }
+step()  { printf '\n%s==> %s%s\n' "$_c_green" "$*" "$_c_reset" >&2; }
+warn()  { printf '%swarn:%s %s\n' "$_c_yellow" "$_c_reset" "$*" >&2; }
+die()   { printf '%serror:%s %s\n' "$_c_red" "$_c_reset" "$*" >&2; exit 1; }
 
-case "$DISTRO_ID" in
-	"centos")
-		module load openmind/gcc/12.2.0
-		DEFAULT_INSTALL_TO="${HOME}/me7"
-		printf "\n\nCentos 7 detected\n\n"
-		;;
-	"rocky")
-		module load openmind8/gcc/12.2.0
-		DEFAULT_INSTALL_TO="${HOME}/me"
-		printf "\n\Rocky 8 detected\n\n"
-		;;
-	*)
-		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
-		DEFAULT_INSTALL_TO="${ME_PATH:-$HOME/me_default}"
-		;;
-esac
-
-
-DEFAULT_INSTALL_TO=${ME_PATH:-$HOME/me}
-
-
-printf "\nInstalling to %s\n\n" "${DEFAULT_INSTALL_TO}"
-
-module load openmind/isl/0.23
-module load openmind/mpfr/4.1.0  openmind/mpc/1.2.1 
-module load openmind/make/4.3
-
-LIBEVENT_VERSION=2.1.12-stable # https://libevent.org/
-NCURSES_VERSION=6.5 # https://invisible-island.net/ncurses/announce.html#h2-release-notes
-CURL_VERSION=8.13.0 # https://curl.se/download.html
-OPENSSL_VERSION=3.5.0 # https://www.openssl.org/source/
-GIT_VERSION=2.49.0 # https://git-scm.com/download/linux
-GIT_MIN_VERSION=2.49
-TMUX_VERSION=3.5a # https://github.com/tmux/tmux/wiki
-VIM_VERSION=9.1.1374 # https://github.com/vim/vim/tags
-ZSH_VERSION=5.9 # http://zsh.sourceforge.net/releases.html
-# NVM_VERSION=0.30.3 # https://github.com/nvm-sh/nvm/releases
-NODE_VERSION=24.0.1 # https://nodejs.org/en/download
-
-
-#### WARNING - DOES NOT WORK
-# INSTALL_TO=${INSTALL_TO:-$DEFAULT_INSTALL_TO}
-read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
-INSTALL_TO=${INSTALL_TO:-"$DEFAULT_INSTALL_TO"}
-
-echo "Installing to: $INSTALL_TO"
-echo ""
-sleep 1
-
-# Step 2: Prompt for user input with the default value shown
-read -p "Install to: [$DEFAULT_INSTALL_TO]: " INSTALL_TO
-
-# Step 3: Set INSTALL_TO to DEFAULT_INSTALL_TO if the input was empty
-if [ -z "$INSTALL_TO" ]; then
-	INSTALL_TO="$DEFAULT_INSTALL_TO"
-fi
-
-# Step 4: Confirm the installation path
-printf "Installing to: %s\n" "$INSTALL_TO"
-
-# INSTALL_TO="/home/daeda/me"
-
-
-TEMP_DIR=$INSTALL_TO/temp_install
-### for clean install ###
-# rm -r $TEMP_DIR 
-# rm -r "${INSTALL_TO}/dependencies"
-### ###
-mkdir -p $INSTALL_TO $TEMP_DIR $INSTALL_TO/dependencies
-cd "${TEMP_DIR}" || exit
-
-path_extra=''
-
-# Make sure we have gcc
-which gcc || sudo -n yum groupinstall -y "Development Tools" || ( echo no gcc; exit 1 )
-
-# compare version numbers
+# version_gt A B --- succeed if A > B as dotted version.
 version_gt() {
-	test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1";
+    [[ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n1)" == "$1" && "$1" != "$2" ]]
 }
 
+version_ge() {
+    [[ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1)" == "$2" ]]
+}
 
-# INSTALL_TO=
-# TEMP_DIR=
-echo "INSTALL_TO :: $INSTALL_TO"
-echo "TEMP_DIR :: $TEMP_DIR"
-echo "DISTRO_ID :: $DISTRO_ID"
-echo "DISTRO_VERSION :: $DISTRO_VERSION"
-echo "path_extra :: $path_extra"
+# Print "$1" sha256 to stderr; if a nonempty hash is registered in $SHA256 and
+# $VERIFY_HASHES=1, abort on mismatch.
+verify_sha256() {
+    local file=$1 key=$2 expected actual
+    expected=${SHA256[$key]:-}
+    actual=$(sha256sum "$file" | awk '{print $1}')
+    info "sha256($key) = $actual"
+    if [[ -n "$expected" && "$VERIFY_HASHES" == 1 ]]; then
+        if [[ "$expected" != "$actual" ]]; then
+            die "sha256 mismatch for $key ($file): expected $expected, got $actual"
+        fi
+        info "sha256 OK: $key"
+    elif [[ -z "$expected" && "$VERIFY_HASHES" == 1 ]]; then
+        die "--verify-hashes set but no SHA256 registered for '$key' (paste the value above into the SHA256 table)"
+    fi
+}
 
-# ---------------------- Dependencies ------------------------
+# Fetch a URL to a local file if missing. Fails loud on 404.
+fetch() {
+    local url=$1 dest=$2
+    if [[ -s "$dest" ]]; then
+        info "cached: $(basename "$dest")"
+        return 0
+    fi
+    [[ "$OFFLINE" == 1 ]] && die "offline mode: missing cached file $dest"
+    info "fetching $url"
+    curl --fail --location --show-error --silent -o "$dest.part" "$url" \
+        || die "download failed: $url"
+    mv "$dest.part" "$dest"
+}
 
-############
-# libevent # (for tmux)
-############
-if [ ! -d $INSTALL_TO/dependencies/libevent ]; then
-	cd "${TEMP_DIR}"
-	wget "https://github.com/libevent/libevent/releases/download/release-${LIBEVENT_VERSION}/libevent-${LIBEVENT_VERSION}.tar.gz"
-	tar -xvzf "libevent-${LIBEVENT_VERSION}.tar.gz"
-	cd "libevent-${LIBEVENT_VERSION}"
-	./configure --prefix="${INSTALL_TO}/dependencies/libevent" --disable-shared
-	make install
-	cd "${TEMP_DIR}"
+# Extract a tarball into the build dir and cd into the extracted tree.
+extract() {
+    local archive=$1 dest=$2
+    mkdir -p "$dest"
+    case "$archive" in
+        *.tar.xz|*.txz)  tar --extract --file="$archive" --directory="$dest" --strip-components=1 --xz ;;
+        *.tar.gz|*.tgz)  tar --extract --file="$archive" --directory="$dest" --strip-components=1 --gzip ;;
+        *.tar.bz2)       tar --extract --file="$archive" --directory="$dest" --strip-components=1 --bzip2 ;;
+        *) die "unknown archive format: $archive" ;;
+    esac
+}
+
+# ============================================================================
+# Flag parsing
+# ============================================================================
+
+ME_PREFIX="${ME_PREFIX:-$HOME/.melocal}"
+BUILD_DIR=""
+OFFLINE=0
+VERIFY_HASHES=0
+SKIP_DEPS=0
+SKIP_TOOLS=0
+SKIP_LANGS=0
+SKIP_SHELL=0
+FORCE_REBUILD=""
+FORCE_REBUILD_ALL=0
+
+usage() {
+    sed -n '1,25p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0
+}
+
+while (( $# )); do
+    case $1 in
+        --prefix=*)          ME_PREFIX=${1#*=} ;;
+        --src=*)             BUILD_DIR=${1#*=} ;;
+        --offline)           OFFLINE=1 ;;
+        --verify-hashes)     VERIFY_HASHES=1 ;;
+        --skip-deps)         SKIP_DEPS=1 ;;
+        --skip-tools)        SKIP_TOOLS=1 ;;
+        --skip-langs)        SKIP_LANGS=1 ;;
+        --skip-shell)        SKIP_SHELL=1 ;;
+        --force-rebuild)     FORCE_REBUILD_ALL=1 ;;
+        --force-rebuild=*)   FORCE_REBUILD=${1#*=} ;;
+        -h|--help)           usage ;;
+        *)                   die "unknown flag: $1" ;;
+    esac
+    shift
+done
+
+export ME_PREFIX
+
+# ============================================================================
+# Pre-flight: OS check, Lmod init, toolchain
+# ============================================================================
+
+preflight_os() {
+    step "Pre-flight: OS check"
+    [[ -r /etc/os-release ]] || die "no /etc/os-release"
+    . /etc/os-release
+    [[ "$ID" == "rocky" ]] || die "only Rocky Linux is supported (got ID=$ID)"
+    version_ge "$VERSION_ID" 8.10 || die "Rocky $VERSION_ID < 8.10"
+    info "Rocky Linux $VERSION_ID"
+}
+
+preflight_lmod() {
+    step "Pre-flight: Lmod"
+    local init
+    for init in \
+        /etc/profile.d/z00_lmod.sh \
+        /etc/profile.d/lmod.sh \
+        /usr/share/lmod/lmod/init/bash
+    do
+        if [[ -f "$init" ]]; then
+            # shellcheck source=/dev/null
+            . "$init" || true
+            info "sourced $init"
+            break
+        fi
+    done
+
+    if command -v module >/dev/null 2>&1; then
+        # StdEnv provides gcc/12.2.0 on ORCD; load it explicitly in case
+        # we're running in a stripped sbatch environment.
+        module load StdEnv 2>/dev/null || true
+    else
+        warn "no 'module' command; relying on system PATH"
+    fi
+}
+
+preflight_toolchain() {
+    step "Pre-flight: toolchain"
+    command -v gcc  >/dev/null 2>&1 || die "gcc not found after StdEnv load"
+    command -v make >/dev/null 2>&1 || die "make not found"
+    command -v curl >/dev/null 2>&1 || die "curl not found (needed to bootstrap)"
+
+    local gccver
+    gccver=$(gcc -dumpfullversion 2>/dev/null || gcc -dumpversion)
+    info "gcc $gccver"
+    version_ge "$gccver" 8.0 || die "gcc $gccver < 8.0; load a newer StdEnv"
+
+    # cmake is not strictly needed but some optional tools want ≥ 3.20.
+    if ! command -v cmake >/dev/null 2>&1 || ! version_ge "$(cmake --version | awk 'NR==1{print $3}')" 3.20; then
+        if command -v module >/dev/null 2>&1; then
+            module load cmake 2>/dev/null || warn "could not load cmake module; continuing"
+        fi
+    fi
+}
+
+preflight_network() {
+    [[ "$OFFLINE" == 1 ]] && { info "offline: skipping network preflight"; return 0; }
+    step "Pre-flight: network reachability"
+    local hosts=(
+        github.com
+        ftp.gnu.org
+        curl.se
+        sourceforge.net
+        libevent.org
+        astral.sh
+        fnm.vercel.app
+        bun.sh
+        nodejs.org
+        invisible-island.net
+        www.kernel.org
+    )
+    local host failures=()
+    for host in "${hosts[@]}"; do
+        if ! curl --silent --fail --head --max-time 10 "https://${host}/" >/dev/null; then
+            failures+=("$host")
+        fi
+    done
+    if (( ${#failures[@]} )); then
+        warn "some hosts unreachable:"
+        printf '    %s\n' "${failures[@]}" >&2
+        warn "continuing anyway; specific downloads will fail loud if blocked"
+    fi
+}
+
+# ============================================================================
+# Build dir
+# ============================================================================
+
+pick_build_dir() {
+    if [[ -n "$BUILD_DIR" ]]; then
+        :
+    elif [[ -n "${TMPDIR:-}" && -w "$TMPDIR" ]]; then
+        BUILD_DIR="$TMPDIR/me-build"
+    else
+        BUILD_DIR="$ME_PREFIX/src"
+    fi
+    mkdir -p "$BUILD_DIR"
+    info "build dir: $BUILD_DIR"
+}
+
+cleanup_build_on_success() {
+    # Keep $BUILD_DIR on failure for inspection; on success, clean it unless
+    # it lives under $ME_PREFIX (in which case the user can re-run with cached
+    # tarballs if they want).
+    if [[ "$BUILD_DIR" != "$ME_PREFIX"* ]]; then
+        rm -rf "$BUILD_DIR"
+    fi
+}
+
+# ============================================================================
+# Install phases
+# ============================================================================
+
+# Per-package sentinel. Use a simple "binary exists" check for tools, and a
+# dotfile sentinel for deps. Honors --force-rebuild.
+needs_rebuild() {
+    local key=$1 sentinel=$2
+    [[ "$FORCE_REBUILD_ALL" == 1 ]] && return 0
+    [[ "$FORCE_REBUILD" == "$key" ]] && return 0
+    [[ ! -e "$sentinel" ]] && return 0
+    return 1
+}
+
+clear_force_for() {
+    local key=$1 sentinel=$2 opt_dir=${3:-}
+    if [[ "$FORCE_REBUILD" == "$key" ]]; then
+        rm -rf "$sentinel" "$opt_dir"
+    fi
+}
+
+install_libevent() {
+    local key=libevent
+    local opt="$ME_PREFIX/opt/libevent"
+    local sentinel="$opt/.installed"
+    clear_force_for "$key" "$sentinel" "$opt"
+    needs_rebuild "$key" "$sentinel" || { info "libevent: already installed"; return 0; }
+    step "Build: libevent $LIBEVENT_VERSION"
+
+    local url="https://github.com/libevent/libevent/releases/download/release-${LIBEVENT_VERSION}/libevent-${LIBEVENT_VERSION}.tar.gz"
+    local tar="$BUILD_DIR/libevent-${LIBEVENT_VERSION}.tar.gz"
+    local src="$BUILD_DIR/libevent-src"
+
+    fetch "$url" "$tar"
+    verify_sha256 "$tar" "$key"
+    rm -rf "$src"
+    extract "$tar" "$src"
+    (
+        cd "$src"
+        ./configure --prefix="$opt" --disable-shared --disable-openssl
+        make -j"$(nproc)"
+        make install
+    )
+    touch "$sentinel"
+}
+
+install_ncurses() {
+    local key=ncurses
+    local opt="$ME_PREFIX/opt/ncurses"
+    local sentinel="$opt/.installed"
+    clear_force_for "$key" "$sentinel" "$opt"
+    needs_rebuild "$key" "$sentinel" || { info "ncurses: already installed"; return 0; }
+    step "Build: ncurses $NCURSES_VERSION"
+
+    local url="https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz"
+    local tar="$BUILD_DIR/ncurses-${NCURSES_VERSION}.tar.gz"
+    local src="$BUILD_DIR/ncurses-src"
+
+    fetch "$url" "$tar"
+    verify_sha256 "$tar" "$key"
+    rm -rf "$src"
+    extract "$tar" "$src"
+    (
+        cd "$src"
+        ./configure --prefix="$opt" \
+            --enable-widec --with-shared --enable-rpath \
+            --without-debug --without-ada \
+            CFLAGS="-fPIC" CXXFLAGS="-fPIC"
+        make -j"$(nproc)"
+        make install
+    )
+    touch "$sentinel"
+}
+
+install_openssl() {
+    local key=openssl
+    local opt="$ME_PREFIX/opt/openssl"
+    local sentinel="$opt/.installed"
+    clear_force_for "$key" "$sentinel" "$opt"
+    needs_rebuild "$key" "$sentinel" || { info "openssl: already installed"; return 0; }
+    step "Build: openssl $OPENSSL_VERSION"
+
+    local url="https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz"
+    local tar="$BUILD_DIR/openssl-${OPENSSL_VERSION}.tar.gz"
+    local src="$BUILD_DIR/openssl-src"
+
+    fetch "$url" "$tar"
+    verify_sha256 "$tar" "$key"
+    rm -rf "$src"
+    extract "$tar" "$src"
+    (
+        cd "$src"
+        ./config --prefix="$opt" --openssldir="$opt/ssl" shared \
+            -Wl,-rpath,"$opt/lib" -Wl,-rpath,"$opt/lib64"
+        make -j"$(nproc)"
+        make install_sw install_ssldirs
+    )
+    touch "$sentinel"
+}
+
+install_curl() {
+    local key=curl
+    local opt="$ME_PREFIX/opt/curl"
+    local sentinel="$opt/.installed"
+    clear_force_for "$key" "$sentinel" "$opt"
+    needs_rebuild "$key" "$sentinel" || { info "curl: already installed"; return 0; }
+    step "Build: curl $CURL_VERSION"
+
+    local url="https://curl.se/download/curl-${CURL_VERSION}.tar.gz"
+    local tar="$BUILD_DIR/curl-${CURL_VERSION}.tar.gz"
+    local src="$BUILD_DIR/curl-src"
+
+    fetch "$url" "$tar"
+    verify_sha256 "$tar" "$key"
+    rm -rf "$src"
+    extract "$tar" "$src"
+    local ssl="$ME_PREFIX/opt/openssl"
+    local ssl_lib="$ssl/lib64"
+    [[ -d "$ssl_lib" ]] || ssl_lib="$ssl/lib"
+    (
+        cd "$src"
+        ./configure --prefix="$opt" \
+            --with-openssl="$ssl" \
+            --enable-shared \
+            LDFLAGS="-Wl,-rpath,$opt/lib -Wl,-rpath,$ssl_lib -L$ssl_lib"
+        make -j"$(nproc)"
+        make install
+    )
+    touch "$sentinel"
+}
+
+# Shared flag builder for consumers linking against $ME_PREFIX/opt/<dep>.
+ncurses_flags() {
+    local n="$ME_PREFIX/opt/ncurses"
+    printf -- '-I%s/include -I%s/include/ncursesw' "$n" "$n"
+}
+ncurses_ldflags() {
+    local n="$ME_PREFIX/opt/ncurses"
+    printf -- '-Wl,-rpath,%s/lib -L%s/lib' "$n" "$n"
+}
+
+install_zsh() {
+    local key=zsh
+    local sentinel="$ME_PREFIX/bin/zsh"
+    [[ "$FORCE_REBUILD" == "$key" ]] && rm -f "$sentinel"
+    needs_rebuild "$key" "$sentinel" || { info "zsh: already installed"; return 0; }
+    step "Build: zsh $ZSH_VERSION"
+
+    local url="https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download"
+    local tar="$BUILD_DIR/zsh-${ZSH_VERSION}.tar.xz"
+    local src="$BUILD_DIR/zsh-src"
+
+    fetch "$url" "$tar"
+    verify_sha256 "$tar" "$key"
+    rm -rf "$src"
+    extract "$tar" "$src"
+    (
+        cd "$src"
+        CPPFLAGS="$(ncurses_flags)" \
+        LDFLAGS="$(ncurses_ldflags)" \
+            ./configure --prefix="$ME_PREFIX" \
+                --enable-multibyte \
+                --with-tcsetpgrp
+        make -j"$(nproc)"
+        make install
+    )
+}
+
+install_tmux() {
+    local key=tmux
+    local sentinel="$ME_PREFIX/bin/tmux"
+    [[ "$FORCE_REBUILD" == "$key" ]] && rm -f "$sentinel"
+    needs_rebuild "$key" "$sentinel" || { info "tmux: already installed"; return 0; }
+    step "Build: tmux $TMUX_VERSION"
+
+    local url="https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz"
+    local tar="$BUILD_DIR/tmux-${TMUX_VERSION}.tar.gz"
+    local src="$BUILD_DIR/tmux-src"
+
+    fetch "$url" "$tar"
+    verify_sha256 "$tar" "$key"
+    rm -rf "$src"
+    extract "$tar" "$src"
+    local le="$ME_PREFIX/opt/libevent"
+    (
+        cd "$src"
+        CPPFLAGS="-I$le/include $(ncurses_flags)" \
+        LDFLAGS="-L$le/lib $(ncurses_ldflags)" \
+            ./configure --prefix="$ME_PREFIX"
+        make -j"$(nproc)"
+        make install
+    )
+}
+
+install_vim() {
+    local key=vim
+    local sentinel="$ME_PREFIX/bin/vim"
+    [[ "$FORCE_REBUILD" == "$key" ]] && rm -f "$sentinel"
+    needs_rebuild "$key" "$sentinel" || { info "vim: already installed"; return 0; }
+    step "Build: vim $VIM_VERSION"
+
+    local url="https://github.com/vim/vim/archive/refs/tags/v${VIM_VERSION}.tar.gz"
+    local tar="$BUILD_DIR/vim-${VIM_VERSION}.tar.gz"
+    local src="$BUILD_DIR/vim-src"
+
+    fetch "$url" "$tar"
+    verify_sha256 "$tar" "$key"
+    rm -rf "$src"
+    extract "$tar" "$src"
+    (
+        cd "$src"
+        CPPFLAGS="$(ncurses_flags)" \
+        LDFLAGS="$(ncurses_ldflags)" \
+            ./configure --prefix="$ME_PREFIX" \
+                --with-features=huge \
+                --enable-multibyte \
+                --disable-gui \
+                --without-x \
+                --disable-nls
+        make -j"$(nproc)"
+        make install
+    )
+}
+
+install_git() {
+    local key=git
+    local sentinel="$ME_PREFIX/bin/git"
+    [[ "$FORCE_REBUILD" == "$key" ]] && rm -f "$sentinel"
+
+    # Skip if system git is already new enough. On ORCD it won't be, but this
+    # is a safety net for future Rocky versions or local dev machines.
+    if [[ ! -e "$sentinel" ]] && command -v git >/dev/null 2>&1; then
+        local sysver
+        sysver=$(git --version | awk '{print $3}')
+        if version_ge "$sysver" "$GIT_MIN_VERSION"; then
+            info "git: system git $sysver ≥ $GIT_MIN_VERSION; skipping build"
+            return 0
+        fi
+    fi
+    needs_rebuild "$key" "$sentinel" || { info "git: already installed"; return 0; }
+    step "Build: git $GIT_VERSION"
+
+    local url="https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz"
+    local tar="$BUILD_DIR/git-${GIT_VERSION}.tar.xz"
+    local src="$BUILD_DIR/git-src"
+
+    fetch "$url" "$tar"
+    verify_sha256 "$tar" "$key"
+    rm -rf "$src"
+    extract "$tar" "$src"
+    local c="$ME_PREFIX/opt/curl"
+    local ssl="$ME_PREFIX/opt/openssl"
+    local ssl_lib="$ssl/lib64"
+    [[ -d "$ssl_lib" ]] || ssl_lib="$ssl/lib"
+    (
+        cd "$src"
+        make prefix="$ME_PREFIX" \
+            CURLDIR="$c" OPENSSLDIR="$ssl" \
+            LDFLAGS="-Wl,-rpath,$c/lib -Wl,-rpath,$ssl_lib -L$c/lib -L$ssl_lib" \
+            NO_GETTEXT=1 NO_PERL=1 \
+            -j"$(nproc)" all
+        make prefix="$ME_PREFIX" NO_GETTEXT=1 NO_PERL=1 install
+    )
+}
+
+install_jj() {
+    local key=jj
+    local sentinel="$ME_PREFIX/bin/jj"
+    [[ "$FORCE_REBUILD" == "$key" ]] && rm -f "$sentinel"
+    needs_rebuild "$key" "$sentinel" || { info "jj: already installed"; return 0; }
+    step "Install: jj $JJ_VERSION (prebuilt musl binary)"
+
+    local url="https://github.com/jj-vcs/jj/releases/download/v${JJ_VERSION}/jj-v${JJ_VERSION}-x86_64-unknown-linux-musl.tar.gz"
+    local tar="$BUILD_DIR/jj-${JJ_VERSION}.tar.gz"
+
+    fetch "$url" "$tar"
+    verify_sha256 "$tar" "$key"
+    mkdir -p "$ME_PREFIX/bin"
+    # Single-file extract; tarball layout is flat.
+    tar --extract --file="$tar" --directory="$ME_PREFIX/bin" --gzip jj
+    chmod +x "$ME_PREFIX/bin/jj"
+}
+
+install_uv() {
+    local sentinel="$ME_PREFIX/bin/uv"
+    [[ "$FORCE_REBUILD" == "uv" ]] && rm -f "$sentinel"
+    needs_rebuild "uv" "$sentinel" || { info "uv: already installed"; return 0; }
+    step "Install: uv (official installer)"
+
+    mkdir -p "$ME_PREFIX/bin"
+    UV_INSTALL_DIR="$ME_PREFIX/bin" INSTALLER_NO_MODIFY_PATH=1 \
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+}
+
+install_fnm() {
+    local sentinel="$ME_PREFIX/bin/fnm"
+    [[ "$FORCE_REBUILD" == "fnm" ]] && rm -f "$sentinel"
+    needs_rebuild "fnm" "$sentinel" || { info "fnm: already installed"; return 0; }
+    step "Install: fnm (official installer)"
+
+    mkdir -p "$ME_PREFIX/bin"
+    curl -fsSL https://fnm.vercel.app/install | bash -s -- \
+        --install-dir "$ME_PREFIX/bin" --skip-shell
+}
+
+install_node_yarn() {
+    local node_sentinel="$ME_PREFIX/fnm/aliases/default"
+    [[ "$FORCE_REBUILD" == "node" ]] && rm -rf "$ME_PREFIX/fnm"
+    if [[ -e "$node_sentinel" && "$FORCE_REBUILD_ALL" != 1 ]]; then
+        info "node: already installed via fnm"
+    else
+        step "Install: Node LTS + yarn (via fnm + corepack)"
+        mkdir -p "$ME_PREFIX/fnm"
+        FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" install --lts
+        # Set the default to whatever fnm just activated so new shells pick it up.
+        local active
+        active=$(FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" current 2>/dev/null || true)
+        if [[ -n "$active" && "$active" != "system" ]]; then
+            FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" default "$active"
+        fi
+    fi
+
+    # Corepack ships with node. Activate fnm's environment in this shell and
+    # install yarn globally via corepack (single source of truth for yarn).
+    eval "$(FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" env --corepack-enabled --shell bash)"
+    if ! command -v yarn >/dev/null 2>&1; then
+        info "installing yarn via corepack"
+        # `corepack install -g` is the modern recipe (Corepack ≥ 0.30).
+        # On older corepack, fall back to `corepack prepare ... --activate`.
+        corepack install -g yarn@stable 2>/dev/null \
+            || corepack prepare yarn@stable --activate
+    fi
+}
+
+install_bun() {
+    local sentinel="$ME_PREFIX/bun/bin/bun"
+    [[ "$FORCE_REBUILD" == "bun" ]] && rm -rf "$ME_PREFIX/bun"
+    needs_rebuild "bun" "$sentinel" || { info "bun: already installed"; return 0; }
+    step "Install: bun (official installer)"
+    # Note: Rocky 8.10 kernel is 4.18.x; bun recommends ≥ 5.6 but gracefully
+    # degrades on ≥ 3.10 (per bun.sh/docs/installation). Usable.
+    mkdir -p "$ME_PREFIX/bun"
+    curl -fsSL https://bun.sh/install | \
+        BUN_INSTALL="$ME_PREFIX/bun" \
+        BUN_INSTALL_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/bun" \
+        bash \
+        || warn "bun install failed; continuing"
+}
+
+install_python_default() {
+    local venv="$ME_PREFIX/python-default"
+    local sentinel="$venv/bin/python"
+    [[ "$FORCE_REBUILD" == "python" ]] && rm -rf "$venv"
+    needs_rebuild "python" "$sentinel" || { info "python-default: already seeded"; return 0; }
+    step "Install: default Python venv ($PYTHON_VERSION via uv)"
+
+    # uv python install is idempotent.
+    if ! "$ME_PREFIX/bin/uv" python install "$PYTHON_VERSION" 2>&1; then
+        warn "could not resolve python $PYTHON_VERSION; falling back to 3.13"
+        "$ME_PREFIX/bin/uv" python install 3.13
+        PYTHON_VERSION=3.13
+    fi
+    "$ME_PREFIX/bin/uv" venv --python "$PYTHON_VERSION" --seed "$venv"
+}
+
+install_rmate() {
+    local sentinel="$ME_PREFIX/bin/rmate"
+    [[ "$FORCE_REBUILD" == "rmate" ]] && rm -f "$sentinel"
+    needs_rebuild "rmate" "$sentinel" || { info "rmate: already installed"; return 0; }
+    step "Install: rmate"
+    mkdir -p "$ME_PREFIX/bin"
+    curl -fsSLo "$sentinel" \
+        https://raw.githubusercontent.com/textmate/rmate/master/bin/rmate
+    chmod +x "$sentinel"
+}
+
+# ============================================================================
+# Dotfiles: clone repo and symlink from $HOME/.<rc> into the repo.
+# ============================================================================
+
+clone_or_update_repo() {
+    local repo="$ME_PREFIX/repo"
+    step "Dotfiles repo"
+    if [[ -d "$repo/.git" ]]; then
+        info "git pull in $repo"
+        git -C "$repo" pull --ff-only || warn "repo pull failed (continuing)"
+    else
+        # If the user invoked setup.sh from inside a local checkout, copy/clone
+        # it in place. Otherwise clone from the canonical URL.
+        local here
+        here=$(cd "$(dirname "$0")" && pwd)
+        if [[ -f "$here/setup.sh" && -d "$here/dotfiles" ]]; then
+            info "linking repo from local checkout at $here"
+            mkdir -p "$(dirname "$repo")"
+            ln -sfn "$here" "$repo"
+        else
+            info "cloning github.com/daeh/me → $repo"
+            git clone https://github.com/daeh/me.git "$repo"
+        fi
+    fi
+}
+
+# dotfile_link <src-in-repo> <dest>. Backup prior non-symlink targets.
+# Appends the destination to $ME_PREFIX/manifest.txt for uninstall.
+dotfile_link() {
+    local src=$1 dest=$2
+    local repo="$ME_PREFIX/repo"
+    local from="$repo/dotfiles/$src"
+    [[ -e "$from" ]] || { warn "missing: $from (skipping)"; return 0; }
+
+    if [[ -L "$dest" ]]; then
+        # already a symlink; replace it unconditionally (it may point stale)
+        rm "$dest"
+    elif [[ -e "$dest" ]]; then
+        local bak="${dest}.bak.$(date +%F_%H.%M.%S)"
+        mv "$dest" "$bak"
+        info "backed up $dest → $bak"
+    fi
+
+    mkdir -p "$(dirname "$dest")"
+    ln -s "$from" "$dest"
+    info "linked $dest → $from"
+    printf '%s\n' "$dest" >> "$ME_PREFIX/manifest.txt"
+}
+
+# Special case: ~/.zprezto is a symlink to $ME_PREFIX/zprezto (not into the repo).
+link_zprezto() {
+    local dest="$HOME/.zprezto"
+    if [[ -L "$dest" ]]; then
+        rm "$dest"
+    elif [[ -e "$dest" ]]; then
+        local bak="${dest}.bak.$(date +%F_%H.%M.%S)"
+        mv "$dest" "$bak"
+        info "backed up $dest → $bak"
+    fi
+    ln -s "$ME_PREFIX/zprezto" "$dest"
+    printf '%s\n' "$dest" >> "$ME_PREFIX/manifest.txt"
+    info "linked $dest → $ME_PREFIX/zprezto"
+}
+
+install_dotfiles() {
+    step "Dotfile symlinks"
+
+    # Fresh manifest each run; the symlinks we (re)create are re-appended.
+    : > "$ME_PREFIX/manifest.txt"
+
+    # --- Special case: pre-existing ~/.gitconfig shadows anything we set. ---
+    # We want ~/.gitconfig to be our symlink, so a regular file there needs
+    # backing up first.
+    if [[ -f "$HOME/.gitconfig" && ! -L "$HOME/.gitconfig" ]]; then
+        mv "$HOME/.gitconfig" "$HOME/.gitconfig.bak.$(date +%F_%H.%M.%S)"
+    fi
+
+    # repo-source → $HOME/.name
+    dotfile_link zshrc          "$HOME/.zshrc"
+    dotfile_link zshenv         "$HOME/.zshenv"
+    dotfile_link zpreztorc      "$HOME/.zpreztorc"
+    dotfile_link p10k.zsh       "$HOME/.p10k.zsh"
+    dotfile_link merc           "$HOME/.merc"
+    dotfile_link me.conf        "$HOME/.me.conf"
+    dotfile_link tmux.conf      "$HOME/.tmux.conf"
+    dotfile_link vimrc          "$HOME/.vimrc"
+    dotfile_link gitconfig      "$HOME/.gitconfig"
+    dotfile_link jjconfig.toml  "$HOME/.jjconfig.toml"
+    dotfile_link bashrc         "$HOME/.bashrc"
+    dotfile_link bash_profile   "$HOME/.bash_profile"
+    dotfile_link screenrc       "$HOME/.screenrc"
+
+    link_zprezto
+}
+
+# ============================================================================
+# Shell env: prezto + p10k + tmux plugin manager
+# ============================================================================
+
+install_prezto() {
+    local dir="$ME_PREFIX/zprezto"
+    step "Prezto"
+    if [[ -d "$dir/.git" ]]; then
+        info "updating prezto"
+        git -C "$dir" pull --ff-only --recurse-submodules || true
+        git -C "$dir" submodule update --init --recursive
+    else
+        git clone --recursive https://github.com/sorin-ionescu/prezto.git "$dir"
+    fi
+}
+
+install_p10k() {
+    local p10k="$ME_PREFIX/powerlevel10k"
+    local prompt_dir="$ME_PREFIX/zprezto/modules/prompt/functions"
+    step "Powerlevel10k"
+    if [[ -d "$p10k/.git" ]]; then
+        git -C "$p10k" pull --ff-only || true
+    else
+        git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$p10k"
+    fi
+    # Expose p10k to prezto's prompt module. This is the documented prezto+p10k
+    # integration (see p10k README, section "For Prezto users").
+    mkdir -p "$prompt_dir"
+    ln -sfn "$p10k/powerlevel10k.zsh-theme" "$prompt_dir/prompt_powerlevel10k_setup"
+}
+
+install_tpm() {
+    local tpm="$ME_PREFIX/tmux-plugins/tpm"
+    step "tmux plugin manager"
+    mkdir -p "$ME_PREFIX/tmux-plugins"
+    if [[ -d "$tpm/.git" ]]; then
+        git -C "$tpm" pull --ff-only || true
+    else
+        git clone https://github.com/tmux-plugins/tpm.git "$tpm"
+    fi
+
+    # Run the initial plugin install on a PRIVATE socket so user's default-socket
+    # tmux sessions are untouched.
+    "$ME_PREFIX/bin/tmux" -L me-setup kill-server 2>/dev/null || true
+    "$ME_PREFIX/bin/tmux" -L me-setup new-session -d
+    TMUX_PLUGIN_MANAGER_PATH="$ME_PREFIX/tmux-plugins/" \
+        "$tpm/scripts/install_plugins.sh" || warn "tpm install_plugins had errors"
+    "$ME_PREFIX/bin/tmux" -L me-setup kill-server 2>/dev/null || true
+}
+
+# ============================================================================
+# Write uninstall.sh
+# ============================================================================
+
+write_uninstaller() {
+    step "Write uninstall.sh"
+    cat >"$ME_PREFIX/uninstall.sh" <<'EOF'
+#!/usr/bin/env bash
+# Auto-generated by setup.sh.
+# Removes the ~/.<rc> symlinks created by setup.sh, then removes $ME_PREFIX.
+# Does NOT touch $XDG_CACHE_HOME (uv, bun, npm, corepack caches).
+set -u
+ME_PREFIX="$(cd "$(dirname "$0")" && pwd)"
+if [[ -f "$ME_PREFIX/manifest.txt" ]]; then
+    while IFS= read -r link; do
+        [[ -z "$link" ]] && continue
+        if [[ -L "$link" ]]; then
+            rm -v "$link"
+        fi
+    done < "$ME_PREFIX/manifest.txt"
 fi
+rm -rfv "$ME_PREFIX"
+echo
+echo "Uninstalled. Tool caches under \$XDG_CACHE_HOME (uv, bun, corepack, npm)"
+echo "are not touched. Remove them manually if desired:"
+echo "  rm -rf \${XDG_CACHE_HOME:-\$HOME/.cache}/{uv,bun,node,npm}"
+EOF
+    chmod +x "$ME_PREFIX/uninstall.sh"
+}
+
+# ============================================================================
+# Summary
+# ============================================================================
+
+print_summary() {
+    step "Installed versions"
+    printf '  zsh:  %s\n' "$("$ME_PREFIX/bin/zsh" --version 2>/dev/null || echo '?')"
+    printf '  tmux: %s\n' "$("$ME_PREFIX/bin/tmux" -V 2>/dev/null || echo '?')"
+    printf '  vim:  %s\n' "$("$ME_PREFIX/bin/vim" --version 2>/dev/null | head -1 || echo '?')"
+    printf '  git:  %s\n' "$("$ME_PREFIX/bin/git" --version 2>/dev/null || echo '?')"
+    printf '  jj:   %s\n' "$("$ME_PREFIX/bin/jj" --version 2>/dev/null || echo '?')"
+    printf '  uv:   %s\n' "$("$ME_PREFIX/bin/uv" --version 2>/dev/null || echo '?')"
+    printf '  fnm:  %s\n' "$("$ME_PREFIX/bin/fnm" --version 2>/dev/null || echo '?')"
+    local nodebin
+    nodebin=$(FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" exec which node 2>/dev/null || true)
+    if [[ -n "$nodebin" ]]; then
+        printf '  node: %s\n' "$("$nodebin" --version)"
+    fi
+    if [[ -x "$ME_PREFIX/bun/bin/bun" ]]; then
+        printf '  bun:  %s\n' "$("$ME_PREFIX/bun/bin/bun" --version 2>/dev/null || echo '?')"
+    fi
+    if [[ -x "$ME_PREFIX/python-default/bin/python" ]]; then
+        printf '  python-default: %s\n' "$("$ME_PREFIX/python-default/bin/python" --version 2>&1 || echo '?')"
+    fi
+
+    cat <<EOF
+
+Install complete at $ME_PREFIX.
+
+Next steps:
+  - Start a fresh shell:   exec $ME_PREFIX/bin/zsh -l
+  - Uninstall:             bash $ME_PREFIX/uninstall.sh
+  - Strip + reinstall:     bash $ME_PREFIX/uninstall.sh && bash $0
+EOF
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+
+main() {
+    # If --force-rebuild (no arg), nuke everything via the prior uninstaller
+    # before proceeding so we get a clean slate.
+    if [[ "$FORCE_REBUILD_ALL" == 1 && -x "$ME_PREFIX/uninstall.sh" ]]; then
+        info "--force-rebuild: running prior uninstall.sh"
+        bash "$ME_PREFIX/uninstall.sh" || true
+    fi
+
+    preflight_os
+    preflight_lmod
+    preflight_toolchain
+    preflight_network
+
+    mkdir -p "$ME_PREFIX/bin" "$ME_PREFIX/opt"
+    pick_build_dir
+
+    if [[ "$SKIP_DEPS" != 1 ]]; then
+        install_libevent
+        install_ncurses
+        install_openssl
+        install_curl
+    fi
+
+    if [[ "$SKIP_TOOLS" != 1 ]]; then
+        install_zsh
+        install_tmux
+        install_vim
+        install_git
+        install_jj
+    fi
+
+    if [[ "$SKIP_LANGS" != 1 ]]; then
+        install_uv
+        install_fnm
+        install_node_yarn
+        install_bun
+        install_python_default
+        install_rmate
+    fi
+
+    if [[ "$SKIP_SHELL" != 1 ]]; then
+        clone_or_update_repo
+        install_prezto
+        install_p10k
+        install_dotfiles
+        install_tpm
+    fi
+
+    write_uninstaller
+    cleanup_build_on_success
+    print_summary
+}
 
-############
-# ncurses  # (for tmux, zsh)
-############
-case "$DISTRO_ID" in
-	"centos")
-		############
-		# ncurses Centos 7 # (for tmux, zsh)
-		############
-		if [ ! -d $INSTALL_TO/dependencies/ncurses ]; then
-			cd "${TEMP_DIR}"
-			wget --no-check-certificate "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz"
-			tar -xvzf "ncurses-${NCURSES_VERSION}.tar.gz"
-			cd "ncurses-${NCURSES_VERSION}"
-			./configure --prefix="${INSTALL_TO}/dependencies/ncurses" CXXFLAGS="-fPIC" CFLAGS="-fPIC" ### for libncursesw.so.6 , --enable-widec for *w, --with-shared for *.so.6
-			make install
-			cd "${TEMP_DIR}"
-		fi
-		;;
-	"rocky")
-		############
-		# ncurses Rocky 8 # (for tmux, zsh)
-		############
-		if [ ! -d $INSTALL_TO/dependencies/ncurses ]; then
-			cd "${TEMP_DIR}"
-			wget --no-check-certificate "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz"
-			tar -xvzf "ncurses-${NCURSES_VERSION}.tar.gz"
-			cd "ncurses-${NCURSES_VERSION}"
-			./configure --prefix="${INSTALL_TO}/dependencies/ncurses" --enable-widec --with-shared CXXFLAGS="-fPIC" CFLAGS="-fPIC" ### for libncursesw.so.6 , --enable-widec for *w, --with-shared for *.so.6
-			make install
-			cd "${TEMP_DIR}"
-		fi
-		;;
-	*)
-		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
-		exit 1
-		;;
-esac
-
-### ldconfig -p | grep libncursesw
-# [daeda@node084 zsh-5.9]$ ldconfig -p | grep libncursesw
-# 	libncursesw.so.6 (libc6,x86-64) => /lib64/libncursesw.so.6
-# 	libncursesw.so.5 (libc6,x86-64) => /lib64/libncursesw.so.5
-
-
-############
-#   curl   # (for git)
-############
-### module add openmind/curl/7.85.0
-# If curl is not already installed...
-which curl-config || \
-sudo -n yum install -y curl-devel || \
-if [ ! -d $INSTALL_TO/dependencies/curl ]; then
-	cd "${TEMP_DIR}"
-	wget --no-check-certificate "https://curl.se/download/curl-${CURL_VERSION}.tar.gz"
-	tar -xvf "curl-${CURL_VERSION}.tar.gz"
-	cd "curl-${CURL_VERSION}"
-	./configure --prefix=$INSTALL_TO/dependencies/curl -enable-shared --with-ssl || (
-		cd "${TEMP_DIR}"
-		# might need to install openssl
-		if [ ! -d "${INSTALL_TO}/dependencies/openssl" ]; then
-			wget "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
-			tar -xvf "openssl-${OPENSSL_VERSION}.tar.gz"
-			cd "openssl-${OPENSSL_VERSION}"
-			./config --prefix="${INSTALL_TO}/dependencies/openssl"
-			make install
-			cd "${TEMP_DIR}"
-		fi
-		cd "curl-${CURL_VERSION}"
-		./configure --prefix="${INSTALL_TO}/dependencies/curl" -enable-shared --with-ssl="${INSTALL_TO}/dependencies/openssl"
-	)
-	make install
-	cd "${TEMP_DIR}"
-fi
-
-## ---------------------- Packages ------------------------
-
-# includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncurses"
-# libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib -L${INSTALL_TO}/dependencies/libevent/include -L${INSTALL_TO}/dependencies/ncurses/include -L${INSTALL_TO}/dependencies/ncurses/include/ncurses"
-
-case "$DISTRO_ID" in
-	"centos")
-		includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncurses"
-		libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib"
-		;;
-	"rocky")
-		includes="-I${INSTALL_TO}/dependencies/libevent/include -I${INSTALL_TO}/dependencies/ncurses/include -I${INSTALL_TO}/dependencies/ncurses/include/ncursesw"
-		libs="-L${INSTALL_TO}/dependencies/libevent/lib -L${INSTALL_TO}/dependencies/ncurses/lib"
-		;;
-	*)
-		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
-		exit 1
-		;;
-esac
-
-
-########################################################################
-
-############
-#   zsh    #
-############
-if [ ! -d $INSTALL_TO/zsh ]; then
-	cd "${TEMP_DIR}"
-	wget --no-check-certificate -O "zsh-${ZSH_VERSION}.tar.xz" "https://sourceforge.net/projects/zsh/files/zsh/${ZSH_VERSION}/zsh-${ZSH_VERSION}.tar.xz/download"
-	tar -xvf "zsh-${ZSH_VERSION}.tar.xz"
-	cd "zsh-${ZSH_VERSION}"
-	CFLAGS="$includes" LDFLAGS="$libs" ./configure --prefix="${INSTALL_TO}/zsh"
-	CPPFLAGS="$includes" LDFLAGS="-static $libs" make install
-	cd "${TEMP_DIR}"
-fi
-path_extra="${INSTALL_TO}/zsh/bin:$path_extra"
-
-############
-#   tmux   #
-############
-if [ ! -d $INSTALL_TO/tmux ]; then
-	cd "${TEMP_DIR}"
-	wget "https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz"
-	tar xvzf "tmux-${TMUX_VERSION}.tar.gz"
-	cd "tmux-${TMUX_VERSION}"
-	CFLAGS="$includes" LDFLAGS="$libs" ./configure --prefix="${INSTALL_TO}/tmux"
-	CPPFLAGS="$includes" LDFLAGS="-static $libs" make install
-	cd "${TEMP_DIR}"
-fi
-path_extra="${INSTALL_TO}/tmux/bin:$path_extra"
-
-############
-#   vim    #
-############
-if [ ! -d $INSTALL_TO/vim ]; then
-	cd "${TEMP_DIR}"
-	wget "https://github.com/vim/vim/archive/v${VIM_VERSION}.tar.gz"
-	tar -xvf "v${VIM_VERSION}.tar.gz"
-	cd "vim-${VIM_VERSION}"
-	### does this need /bin?
-	vim_cv_tgetent=zero LDFLAGS="-L${INSTALL_TO}/dependencies/ncurses/lib -L${INSTALL_TO}/dependencies/ncurses/bin" \
-		./configure --prefix="${INSTALL_TO}/vim"
-	make install
-	cd "${TEMP_DIR}"
-fi
-path_extra="${INSTALL_TO}/vim/bin:$path_extra"
-
-############
-#   git    #
-############
-if [ ! -d $INSTALL_TO/git ]; then
-	which git && version_gt $(git --version | cut -d" " -f3) $GIT_MIN_VERSION && has_git=1
-	if [ $has_git ]; then
-		echo "Using already-installed git";
-	else
-		cd "${TEMP_DIR}"
-		wget --no-check-certificate "https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz"
-		tar -xvf "git-${GIT_VERSION}.tar.xz"
-		cd "git-${GIT_VERSION}"
-		if [ -d $INSTALL_TO/dependencies/curl ]; then
-			PATH=$INSTALL_TO/dependencies/curl/bin:$PATH \
-			./configure --prefix="${INSTALL_TO}/git" --with-curl=$INSTALL_TO/dependencies/curl
-		else
-			./configure --prefix="${INSTALL_TO}/git" --with-curl
-		fi
-		make install
-		cd "${TEMP_DIR}"
-	fi
-fi
-path_extra="${INSTALL_TO}/git/bin:$path_extra"
-
-
-########################################################################
-
-############
-#  rmate   #
-############
-case "$DISTRO_ID" in
-	"centos")
-		echo "bypassing rmate install for centos 7"
-		;;
-	"rocky")
-		if [ ! -f $INSTALL_TO/rmate/bin ]; then
-			cd "${INSTALL_TO}"
-			mkdir -p "${INSTALL_TO}/rmate/bin/"
-			curl -Lo "${INSTALL_TO}/rmate/bin/rmate" "https://raw.githubusercontent.com/textmate/rmate/master/bin/rmate"
-			chmod a+x "${INSTALL_TO}/rmate/bin/rmate"
-			cd "${TEMP_DIR}"
-		fi
-		### given alias in me.conf
-		# path_extra="${INSTALL_TO}/rmate/bin:$path_extra"
-		;;
-	*)
-		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
-		exit 1
-		;;
-esac
-
-
-
-########################################################################
-########################################################################
-
-# ------------- Extensions / Config -------------------
-export PATH=$path_extra$PATH
-
-case "$DISTRO_ID" in
-	"centos")
-		echo "bypassing install for centos 7"
-		;;
-	"rocky")
-		# Dotfiles
-		if [ ! -d $INSTALL_TO/me ]; then
-			git clone "https://github.com/daeh/me.git" "${INSTALL_TO}/me"
-		fi
-		cd "${INSTALL_TO}/me" || exit 1
-		git pull
-		### force if need be
-		# git fetch origin main
-		# git reset --hard origin/main
-
-		# for dotfile in $(ls -a $INSTALL_TO/me/dotfiles | grep [^.]); do
-		for dotfilesrc in $(ls -a $INSTALL_TO/me/dotfiles); do
-
-			# if [ ${#dotfile} -ge 3 ]; then ### skip . and ..
-			if [[ $dotfilesrc != .* ]]; then ### skip ., .., .DS_*
-				dotfile=".${dotfilesrc}"
-				echo "Addding dotfile: ${dotfile}"
-
-				if [ -L $HOME/$dotfile ]; then ### is symbolic link
-					rm "$HOME/$dotfile"
-				elif [ -f $HOME/$dotfile ]; then ### is file
-					mv "$HOME/$dotfile" "$HOME/${dotfile}_"$(date +"%F_%H.%M.%S")
-				fi
-				ln -s "$INSTALL_TO/me/dotfiles/$dotfilesrc" "$HOME/$dotfile"
-			else
-				echo "Skipping dotfilesrc: ${dotfilesrc}"
-			fi 
-
-		done
-		;;
-	*)
-		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
-		exit 1
-		;;
-esac
-
-
-
-# tmux plugin manager
-if [ ! -d $HOME/.tmux/plugins/tpm ]; then
-	git clone "https://github.com/tmux-plugins/tpm" "$HOME/.tmux/plugins/tpm"
-fi
-# in case tmux is running
-tmux kill-server
-# start a server but don't attach to it
-tmux start-server
-# create a new session but don't attach to it either
-tmux new-session -d
-# install the plugins
-$HOME/.tmux/plugins/tpm/scripts/install_plugins.sh
-# killing the server is not required, I guess
-tmux kill-server
-
-
-########################################################################
-########################################################################
-
-########################################################################
-########################################################################
-### other install locations
-########################################################################
-########################################################################
-
-
-############
-#  uv      #
-############
-# https://docs.astral.sh/uv/getting-started/installation/
-# https://docs.astral.sh/uv/configuration/installer/
-# if [ ! -d /om/weka/gablab/daeda/software/miniconda3 ]; then
-	cd "${TEMP_DIR}"
-	# mkdir uv
-	# cd uv
-
-	# curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --help
-
-	# curl -LsSf https://astral.sh/uv/install.sh | bash ### works
-	curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="${INSTALL_TO}/astraluv" INSTALLER_NO_MODIFY_PATH=1 bash ### don't modify path ### UNESTED
-	
-	# curl -LsSf https://astral.sh/uv/install.sh | bash
-	# curl -LsSf https://astral.sh/uv/install.sh | zsh
-	### 
-	
-	### BY DEFAULT
-	#### installs to ~/.local/bin/uv
-
-	#### UPDATE INSTALL PATH
-	# curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.7.3/uv-installer.sh | env UV_INSTALL_DIR="${HOME}/me7" zsh
-
-# fi
-
-############
-# FNM      #
-############
-cd "${TEMP_DIR}"
-# https://github.com/Schniz/fnm
-# curl -fsSL https://fnm.vercel.app/install | bash ### workd
-# curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "${HOME}/.local/share/fnm" --skip-shell
-curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "${INSTALL_TO}/fnm" --skip-shell
-### THEN :: install node ###
-# FNM_PATH="${HOME}/.local/share/fnm"
-# if [ -d "$FNM_PATH" ]; then
-#   export PATH="$FNM_PATH:$PATH"
-#   eval "`fnm env`"
-# fi
-# eval "$(fnm env --corepack-enabled --version-file-strategy=recursive --shell zsh)"
-# print "Remotes"
-# fnm list-remote
-# print "\nInstalled"
-# fnm list
-# print "\nActive"
-# fnm current
-# fnm install --progress auto --corepack-enabled "v${NODE_VERSION}"
-# fnm default "v${NODE_VERSION}"
-### IMPORTANT:: change install location
-
-############
-#  conda   #
-############
-#### NOT COMPLETE
-#### REQUIRES INTERACTION
-if [ ! -d /om/weka/gablab/daeda/software/miniconda3 ]; then
-	cd "${TEMP_DIR}"
-	mkdir conda
-	cd conda
-	wget "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
-	bash Miniconda3-latest-Linux-x86_64.sh
-	### after zsh is set up ###
-	### pivot to zsh
-	# eval "$(/om/weka/gablab/daeda/software/miniconda3/bin/conda shell.zsh hook)"
-	# cd ${HOME}/me/me/additional_scripts ***** check centos version
-	# conda env create -f env_omlab.yml
-fi
-
-
-
-# ############
-# # NVM / Node.js
-# ############
-# if [ -d ${HOME}/.nvm/versions/node ]; then
-# 	# cd "/om2/user/daeda/software"
-# 	# wget "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"
-# 	# tar xf "node-v${NODE_VERSION}-linux-x64.tar.xz"
-# 	cd "${TEMP_DIR}"
-# 	wget -qO- "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh" | bash
-# 	# The script clones the nvm repository to ~/.nvm, and attempts to add the source lines from the snippet below to the correct profile file (~/.bash_profile, ~/.zshrc, ~/.profile, or ~/.bashrc).
-# 	# export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-# 	# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
-
-# 	### GET code from local script to finish installing node, webppl, etc.
-
-# 	### important - remove paths from profile
-
-# 	# export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-# 	# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
-# 	##### nvm install node --latest-npm
-# 	##### nvm install --lts --latest-npm
-# 	# nvm install ${NODE_VERSION}
-# 	# nvm use ${NODE_VERSION}
-# 	# npm install -g webppl
-# 	# npm install -g jshint
-# 	# npm install --prefix ~/.webppl webppl-json --force
-# fi
-
-############
-# latex
-############
-
-#### NB do this in a tmux session
-
-if [ -d /om2/user/daeda/software ]; then
-	if [ ! -d /om2/user/daeda/software/texlive ]; then
-		
-		cd "${TEMP_DIR}"
-		wget --no-check-certificate "https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz"
-		zcat install-tl-unx.tar.gz | tar xf -
-		# cd install-tl-*
-		cd $(find . -maxdepth 1 -type d -name 'install-tl-*' -print -quit)
-
-# mkdir "${INSTALL_TO}/texlive"
-# mkdir "${HOME}/texlive-config"
-#D
-# <1> TEXDIR:         /om2/user/daeda/software/texlive
-# <5> TEXMFVAR:       /home/daeda/texlive-config/.texlive/texmf-var
-# <6> TEXMFCONFIG:    /home/daeda/texlive-config/.texlive/texmf-config
-# <7> TEXMFHOME:      /home/daeda/texlive-config/texmf
-#
-# <O> options:
-#  [X] use letter size instead of A4 by default
-
-		# rm -r /om2/user/daeda/software/texlive
-		# rm -r /home/daeda/texlive-config/.texlive/texmf-config
-
-cat > texlive.profile << EOL
-# selected_scheme scheme-small
-selected_scheme scheme-full
-TEXDIR /om2/user/daeda/software/texlive
-TEXMFCONFIG /home/daeda/texlive-config/.texlive/texmf-config
-TEXMFHOME /home/daeda/texlive-config/texmf
-TEXMFLOCAL /om2/user/daeda/software/texlive/texmf-local
-TEXMFSYSCONFIG /om2/user/daeda/software/texlive/texmf-config
-TEXMFSYSVAR /om2/user/daeda/software/texlive/texmf-var
-TEXMFVAR /home/daeda/texlive-config/.texlive/texmf-var
-binary_x86_64-linux 1
-instopt_adjustpath 0
-instopt_adjustrepo 1
-instopt_letter 1
-instopt_portable 0
-instopt_write18_restricted 1
-tlpdbopt_autobackup 1
-tlpdbopt_backupdir tlpkg/backups
-tlpdbopt_create_formats 1
-tlpdbopt_desktop_integration 1
-tlpdbopt_file_assocs 1
-tlpdbopt_generate_updmap 0
-tlpdbopt_install_docfiles 1
-tlpdbopt_install_srcfiles 1
-tlpdbopt_post_code 1
-tlpdbopt_sys_bin /usr/local/bin
-tlpdbopt_sys_info /usr/local/share/info
-tlpdbopt_sys_man /usr/local/share/man
-tlpdbopt_w32_multi_user 1
-EOL
-
-		perl ./install-tl --profile texlive.profile
-	fi
-fi
-### tlmgr update --all
-
-# tlmgr update --list
-# tlmgr update --self
-# tlmgr update --self --all --reinstall-forcibly-removed
-
-############
-#freesurfer#
-############
-### install instructions https://surfer.nmr.mgh.harvard.edu/fswiki//FS7_linux
-### downloads https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads
-# cat /etc/centos-release ### check which centos release
-# cd /om2/user/daeda/software || exit
-# rm -r freesurfer ### remove old version
-# wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.1.1/freesurfer-linux-centos7_x86_64-7.1.1.tar.gz
-# tar -zxvpf freesurfer-linux-centos7_x86_64-7.1.1.tar.gz
-# rm freesurfer-linux-centos7_x86_64-7.1.1.tar.gz
-# cd freesurfer
-
-# ### add to .me.conf ###
-# export FREESURFER_HOME=/om2/user/daeda/software/freesurfer ### 7.1.1
-# export SUBJECTS_DIR=$FREESURFER_HOME/subjects
-# export FS_LICENSE='/gablab/p/ADHDER/data/adhder/code/license.txt'
-# source $FREESURFER_HOME/SetUpFreeSurfer.sh
-
-
-
-# -----------------------------------------------------
-
-###TODO install prezto instead
-# https://github.com/sorin-ionescu/prezto
-
-# # Oh-my-zsh
-# if [ ! -d $HOME/.oh-my-zsh ]; then
-# 	PATH=${INSTALL_TO}/zsh/bin:$PATH RUNZSH=no CHSH=no sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
-# fi
-
-# # Zsh plugins
-# zshcustom=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
-# # if [ ! -f ${zshcustom}/bullet-train.zsh-theme ]; then
-# # 	wget http://raw.github.com/caiogondim/bullet-train-oh-my-zsh-theme/master/bullet-train.zsh-theme -O ${zshcustom}/bullet-train.zsh-theme
-# # fi
-# if [ ! -d ${zshcustom}/themes/powerlevel10k ]; then
-# 	git clone --depth=1 "https://github.com/romkatv/powerlevel10k.git" "${zshcustom}/themes/powerlevel10k"
-# fi
-# if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ]; then
-# 	git clone "https://github.com/zsh-users/zsh-autosuggestions" "${zshcustom}/plugins/zsh-autosuggestions"
-# fi
-# if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting ]; then
-# 	git clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${zshcustom}/plugins/zsh-syntax-highlighting"
-# fi
-
-
-### with zsh
-
-cd "${TEMP_DIR}"
-if [ -d $INSTALL_TO/zsh && -f $INSTALL_TO/zsh/bin/zsh ]; then
-	. $INSTALL_TO/zsh/bin/zsh
-	git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"
-
-	# https://github.com/sorin-ionescu/prezto/tree/master/runcoms#readme
-	# setopt EXTENDED_GLOB
-	# for rcfile in "${ZDOTDIR:-$HOME}"/.zprezto/runcoms/^README.md(.N); do
-	# 	ln -s "$rcfile" "${ZDOTDIR:-$HOME}/.${rcfile:t}"
-	# done
-fi
-
-
-
-
-# -----------------------------------------------------
-
-# cleanup
-cd $INSTALL_TO
-rm -rf "${TEMP_DIR}"
-
-### .merc file updated manually now ###
-# Create .merc file
-# echo "export PATH=$path_extra:\$PATH" > "$HOME/.merc"
-# echo "export DEFAULT_TMUX_SHELL=$INSTALL_TO/zsh/bin/zsh" >> "$HOME/.merc"
-# echo "export ME_PATH=$INSTALL_TO" >> "$HOME/.merc"
-
-### now in zshrc
-# echo "source \$HOME/.me.conf" >> "$HOME/.merc"
-
-# grep "source \$HOME/.merc" "$HOME/.bash_profile" || echo "source \$HOME/.merc" >> "$HOME/.bash_profile" || 
-# grep "source \$HOME/.merc" "$HOME/.bashrc" || echo "source \$HOME/.merc" >> "$HOME/.bashrc"
-
-### for some reason, I need this in my .bashrc :
-# export PATH=$HOME/local/bin:$PATH
-
-echo "Installled to: $INSTALL_TO"
+main "$@"

@@ -1,186 +1,24 @@
-### For Bash OM admin said:
-### The new OS Rocky 8 is installed on the new nodes (>=100), while the old OS CentOS 7 is used on the old nodes (<100). In order to make applications work smoothly on both OS, especially to resolve the issues related to module, add the following lines in the .bashrc file in your home directory.
-### Am adding the zsh version, in case it's needed
-if [ -f /etc/zshrc ]; then
-    . /etc/zshrc
-fi
+# ~/.zshrc --- sourced for interactive zsh sessions only.
 
-source $HOME/.merc
-
-#
-# /etc/zlogin and .zlogin are sourced in login shells.  It should
-# contain commands that should be executed only in
-# login shells.  It should be used to set the terminal
-# type and run a series of external commands (fortune,
-# msgs, from, etc).
-#
-
-#
-#
-# /etc/zlogout and ~/.zlogout are run when an interactive session ends
-#
-#
-
-#
-# /etc/zprofile and ~/.zprofile are run for login shells
-#
-
-# /etc/zsh/zshenv: system-wide .zshenv file for zsh(1).
-#
-# This file is sourced on all invocations of the shell.
-# If the -f flag is present or if the NO_RCS option is
-# set within this file, all other initialization files
-# are skipped.
-#
-# This file should contain commands to set the command
-# search path, plus other important environment variables.
-# This file should not contain commands that produce
-# output or assume the shell is attached to a tty.
-#
-# Global Order: zshenv, zprofile, zshrc, zlogin
-
-#
-# /etc/zshrc is sourced in interactive shells.  It
-# should contain commands to set up aliases, functions,
-# options, key bindings, etc.
-#
-
-#######################
-
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
+# Powerlevel10k instant prompt. Must stay near the top; nothing above should
+# write to stdout or require a tty.
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
     source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
+# Prezto (replaces oh-my-zsh). Theme/plugin selection lives in ~/.zpreztorc.
+if [[ -s "$HOME/.zprezto/init.zsh" ]]; then
+    source "$HOME/.zprezto/init.zsh"
+fi
 
+# p10k config. Prezto's prompt module sets up the theme; this file customizes it.
+[[ -r "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
 
-ZSH_TMUX_ITERM2="true"
+# me extras --- path helpers, aliases, functions.
+[[ -r "$HOME/.merc" ]] && source "$HOME/.merc"
+[[ -r "$HOME/.me.conf" ]] && source "$HOME/.me.conf"
 
-# Path to your oh-my-zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
-
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time oh-my-zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="powerlevel10k/powerlevel10k"
-
-# Set list of themes to pick from when loading at random
-# Setting this variable when ZSH_THEME=random will cause zsh to load
-# a theme from this variable instead of looking in $ZSH/themes/
-# If set to an empty array, this variable will have no effect.
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
-
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
-
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
-# HYPHEN_INSENSITIVE="true"
-
-# Uncomment one of the following lines to change the auto-update behavior
-# zstyle ':omz:update' mode disabled  # disable automatic updates
-# zstyle ':omz:update' mode auto      # update automatically without asking
-# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
-
-# Uncomment the following line to change how often to auto-update (in days).
-# zstyle ':omz:update' frequency 13
-
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
-
-# Uncomment the following line to display red dots whilst waiting for completion.
-# You can also set it to another string to have that shown instead of the default red dots.
-# e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
-# Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
-# COMPLETION_WAITING_DOTS="true"
-
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications,
-# see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
-
-GITSTATUS_LOG_LEVEL=DEBUG ### temp
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(
-    zsh-syntax-highlighting
-    zsh-autosuggestions
-    git
-    tmux
-)
-# autoload -U compinit && compinit ### for zsh-completions
-
-### TMUX aliases provided by tmux plugin
-# "ta" "attach" "-t"
-# "tad" "attach -d" "-t"
-# "ts" "new-session" "-s"
-# "tkss" "kill-session" "-t"
-
-### change location for .zcompdump-* files created by `compinit` mechanism of zsh
-export ZSH_COMPDUMP=$ZSH/cache/.zcompdump-$HOST
-
-source $ZSH/oh-my-zsh.sh
-
-# User configuration
-
-# export MANPATH="/usr/local/man:$MANPATH"
-
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
-
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
-# else
-#   export EDITOR='mvim'
-# fi
-
-# Compilation flags
-# export ARCHFLAGS="-arch x86_64"
-
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
-
-# If not running interactively, we're done
-[ -z "$PS1" ] && return
-
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-
-
-source $HOME/.me.conf
+# fnm env --- exposes the active node on PATH and enables corepack (yarn shim).
+if command -v fnm >/dev/null 2>&1; then
+    eval "$(fnm env --corepack-enabled --shell zsh)"
+fi

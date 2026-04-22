@@ -1,5 +1,0 @@
-### For Astral UV and UVX ###
-### adds $HOME/.local/bin to PATH (if not already there), which is where Astral UV and UVX are installed
-# if [ -f /etc/bashrc ]; then
-#   . "$HOME/.local/bin/env"
-# fi

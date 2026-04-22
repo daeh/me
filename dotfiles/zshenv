@@ -1,0 +1,37 @@
+# ~/.zshenv --- sourced on every zsh invocation (login and non-login, interactive and not).
+# Keep this fast and side-effect-free; heavy init belongs in .zshrc.
+
+# Everything this user's `me` install places on disk lives under ME_PREFIX.
+# Cleanup is `bash $ME_PREFIX/uninstall.sh` which removes the ~/.<rc> symlinks
+# listed in $ME_PREFIX/manifest.txt and then `rm -rf $ME_PREFIX`.
+export ME_PREFIX="${ME_PREFIX:-$HOME/.melocal}"
+
+# Tool env vars pointing into $ME_PREFIX so each tool respects our layout.
+export FNM_DIR="$ME_PREFIX/fnm"
+export BUN_INSTALL="$ME_PREFIX/bun"
+
+# XDG defaults for tool caches that live *outside* $ME_PREFIX (they're the tool's
+# own ephemeral data, not ours).
+: "${XDG_CONFIG_HOME:=$HOME/.config}"
+: "${XDG_CACHE_HOME:=$HOME/.cache}"
+: "${XDG_STATE_HOME:=$HOME/.local/state}"
+export XDG_CONFIG_HOME XDG_CACHE_HOME XDG_STATE_HOME
+
+export BUN_INSTALL_CACHE_DIR="$XDG_CACHE_HOME/bun"
+export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc"
+export NPM_CONFIG_CACHE="$XDG_CACHE_HOME/npm"
+export LESSHISTFILE="$XDG_STATE_HOME/less/history"
+
+export EDITOR=vim
+export PAGER=less
+
+# PATH assembly --- sbatch non-login zsh jobs source .zshenv (not .zprofile),
+# so PATH goes here. `typeset -U path` dedupes so re-sourcing is safe.
+path=(
+    "$ME_PREFIX/bin"
+    "$BUN_INSTALL/bin"
+    "$ME_PREFIX/python-default/bin"
+    "$HOME/.local/bin"
+    $path
+)
+typeset -U path

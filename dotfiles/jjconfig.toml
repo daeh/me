@@ -1,0 +1,15 @@
+# ~/.jjconfig.toml --- jujutsu configuration.
+# Reference: https://jj-vcs.github.io/jj/latest/config/
+
+[user]
+name = "Dae Houlihan"
+email = "dev@daeh.info"
+
+[ui]
+editor = "vim"
+default-command = "log"
+
+[aliases]
+l = ["log"]
+s = ["status"]
+d = ["diff"]

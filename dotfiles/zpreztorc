@@ -1,0 +1,47 @@
+# ~/.zpreztorc --- prezto configuration.
+# Reference: https://github.com/sorin-ionescu/prezto
+
+# --- General ---
+
+# Disable the "color output" autocorrect nag.
+zstyle ':prezto:*:*' color 'yes'
+
+# Modules loaded, in order. NOTE ORDERING CONSTRAINTS (per prezto README):
+#   - 'syntax-highlighting' must precede 'history-substring-search'.
+#   - 'prompt' must be last.
+zstyle ':prezto:load' pmodule \
+    'environment' \
+    'terminal' \
+    'editor' \
+    'history' \
+    'directory' \
+    'spectrum' \
+    'utility' \
+    'completion' \
+    'autosuggestions' \
+    'syntax-highlighting' \
+    'history-substring-search' \
+    'prompt'
+
+# --- Module: editor ---
+zstyle ':prezto:module:editor' key-bindings 'emacs'
+zstyle ':prezto:module:editor' dot-expansion 'yes'
+
+# --- Module: completion ---
+# Case-insensitive, hyphen-insensitive matching.
+zstyle ':prezto:module:completion' case-sensitive 'no'
+
+# --- Module: history-substring-search ---
+zstyle ':prezto:module:history-substring-search:color' found 'bg=magenta,fg=white,bold'
+
+# --- Module: prompt ---
+# Powerlevel10k. Install lives at $ME_PREFIX/powerlevel10k; the setup script
+# symlinks its theme file into $ME_PREFIX/zprezto/modules/prompt/functions/
+# so prezto's prompt module finds it under the name 'powerlevel10k'.
+# Per p10k README, "For Prezto users".
+zstyle ':prezto:module:prompt' theme 'powerlevel10k'
+
+# --- Module: terminal ---
+zstyle ':prezto:module:terminal' auto-title 'yes'
+zstyle ':prezto:module:terminal:window-title' format '%n@%m: %s'
+zstyle ':prezto:module:terminal:tab-title' format '%m: %s'
