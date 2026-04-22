@@ -2,3 +2,10 @@
 # Delegates to ~/.bashrc so the interactive / login split is transparent.
 
 [[ -f "$HOME/.bashrc" ]] && . "$HOME/.bashrc"
+
+# Hand off to our built zsh on interactive logins. Guarded so that
+# non-interactive transports (scp, sftp, rsync, sbatch job setup) are
+# unaffected — those don't set `i` in $-.
+if [[ $- == *i* ]] && [[ -x "${ME_PREFIX:-$HOME/.melocal}/bin/zsh" ]]; then
+    exec "${ME_PREFIX:-$HOME/.melocal}/bin/zsh" -l
+fi
