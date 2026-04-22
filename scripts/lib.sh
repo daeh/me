@@ -677,8 +677,16 @@ install_jj() {
     fetch "$url" "$tar"
     verify_sha256 "$tar" "$key"
     mkdir -p "$ME_PREFIX/bin"
-    tar --extract --file="$tar" --directory="$ME_PREFIX/bin" --gzip jj
-    chmod +x "$ME_PREFIX/bin/jj"
+    # jj's tarball may place the binary at the archive root or inside a
+    # versioned subdir (varies by release). Extract the whole thing into a
+    # temp dir, find the binary, move it into place.
+    local tmpdir; tmpdir=$(mktemp -d)
+    tar --extract --file="$tar" --directory="$tmpdir" --gzip
+    local jj_bin
+    jj_bin=$(find "$tmpdir" -type f -name jj -perm -u+x | head -n1)
+    [[ -n "$jj_bin" ]] || die "jj binary not found in $tar"
+    install -m 0755 "$jj_bin" "$ME_PREFIX/bin/jj"
+    rm -rf "$tmpdir"
 }
 
 install_task() {
