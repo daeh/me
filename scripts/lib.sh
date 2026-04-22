@@ -517,17 +517,23 @@ install_tmux() {
     verify_sha256 "$tar" "$key"
     rm -rf "$src"
     extract "$tar" "$src"
+
+    # tmux 3.6a's compat.h declares forkpty() with a non-const signature that
+    # conflicts with glibc 2.28+'s const-qualified <pty.h>. The declaration is
+    # unconditional (not guarded by HAVE_FORKPTY), so neither LIBS nor cache
+    # overrides help — patch compat.h in-place to match glibc.
+    if grep -q 'forkpty(int \*, char \*, struct termios \*, struct winsize \*)' "$src/compat.h"; then
+        info "patching compat.h forkpty() prototype to match glibc"
+        sed -i \
+            's|forkpty(int \*, char \*, struct termios \*, struct winsize \*)|forkpty(int *, char *, const struct termios *, const struct winsize *)|' \
+            "$src/compat.h"
+    fi
+
     local le="$ME_PREFIX/opt/libevent"
-    # LIBS="-lutil" forces autoconf's AC_SEARCH_LIBS to resolve forkpty in
-    # libutil, which sets HAVE_FORKPTY. Without this, compat.h re-declares
-    # forkpty with a non-const signature that collides with glibc 2.28+'s
-    # const-qualified <pty.h> prototype — a known tmux 3.6 build issue on
-    # Rocky/RHEL 8.
     (
         cd "$src"
         CPPFLAGS="-I$le/include $(ncurses_flags)" \
         LDFLAGS="-L$le/lib $(ncurses_ldflags)" \
-        LIBS="-lutil" \
             ./configure --prefix="$ME_PREFIX"
         make -j"$(nproc)"
         make install
