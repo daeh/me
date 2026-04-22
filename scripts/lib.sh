@@ -378,6 +378,19 @@ install_ncurses() {
         make -j"$(nproc)"
         make install
     )
+
+    # --enable-widec builds libncursesw but not libncurses. Consumers like
+    # tmux add -lncurses to the link line in addition to -lncursesw; on Rocky 8
+    # without ncurses-devel the system's libncurses.so symlink is also absent,
+    # so ld can't resolve -lncurses anywhere. Alias the widec libs under their
+    # non-widec names in our prefix.
+    local lib
+    for lib in ncurses tinfo form menu panel; do
+        if [[ -f "$opt/lib/lib${lib}w.so" && ! -e "$opt/lib/lib${lib}.so" ]]; then
+            ln -s "lib${lib}w.so" "$opt/lib/lib${lib}.so"
+        fi
+    done
+
     touch "$sentinel"
 }
 
