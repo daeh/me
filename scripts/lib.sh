@@ -647,15 +647,20 @@ install_git() {
     # -lcurl on the link line when extra LDFLAGS are present, producing
     # undefined references in git-http-fetch et al. curl-config emits the
     # correct CFLAGS and LIBS directly.
+    # Both make invocations must receive identical flags — git's Makefile
+    # detects "flags changed" between `all` and `install` and triggers a full
+    # rebuild if they differ.
+    local git_flags=(
+        prefix="$ME_PREFIX"
+        CURL_CONFIG="$c/bin/curl-config"
+        OPENSSLDIR="$ssl"
+        LDFLAGS="-Wl,-rpath,$c/lib -Wl,-rpath,$ssl_lib -L$ssl_lib"
+        NO_GETTEXT=1 NO_PERL=1 NO_EXPAT=1 NO_TCLTK=1
+    )
     (
         cd "$src"
-        make prefix="$ME_PREFIX" \
-            CURL_CONFIG="$c/bin/curl-config" OPENSSLDIR="$ssl" \
-            LDFLAGS="-Wl,-rpath,$c/lib -Wl,-rpath,$ssl_lib -L$ssl_lib" \
-            NO_GETTEXT=1 NO_PERL=1 NO_EXPAT=1 NO_TCLTK=1 \
-            -j"$(nproc)" all
-        make prefix="$ME_PREFIX" \
-            NO_GETTEXT=1 NO_PERL=1 NO_EXPAT=1 NO_TCLTK=1 install
+        make "${git_flags[@]}" -j"$(nproc)" all
+        make "${git_flags[@]}" install
     )
 }
 
