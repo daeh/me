@@ -750,8 +750,10 @@ install_uv() {
     step "Install: uv (official installer)"
 
     mkdir -p "$ME_PREFIX/bin"
-    UV_INSTALL_DIR="$ME_PREFIX/bin" INSTALLER_NO_MODIFY_PATH=1 \
-        curl -LsSf https://astral.sh/uv/install.sh | sh
+    # Env vars must be on `sh` (right of the pipe), not on `curl` — otherwise
+    # the installer runs with its defaults and lands in ~/.local/bin.
+    curl -LsSf https://astral.sh/uv/install.sh | \
+        UV_INSTALL_DIR="$ME_PREFIX/bin" INSTALLER_NO_MODIFY_PATH=1 sh
 }
 
 install_fnm() {
