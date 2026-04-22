@@ -35,3 +35,20 @@ right = ["diagnostics", "selections", "position", "file-encoding", "file-type"]
 # Leader-ish niceties; feel free to rip out.
 space.w = ":w"
 space.q = ":q"
+
+# Readline-style insert-mode bindings. Requires the terminal to forward Alt
+# as the expected escape sequence; inside tmux, ensure `set -g xterm-keys on`
+# or Alt-* arrives as bare ESC and gets eaten as "exit insert mode".
+[keys.insert]
+S-left = "extend_char_left"
+S-right = "extend_char_right"
+S-up = "extend_visual_line_up"
+S-down = "extend_visual_line_down"
+C-a = "goto_line_start"
+C-e = "goto_line_end_newline"
+C-u = "kill_to_line_start"
+A-b = "move_prev_word_start"
+A-f = "move_next_word_start"
+S-A-left = "extend_prev_word_start"
+S-A-right = "extend_next_word_start"
+A-backspace = "delete_word_backward"

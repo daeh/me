@@ -21,6 +21,7 @@ zstyle ':prezto:load' pmodule \
     'autosuggestions' \
     'syntax-highlighting' \
     'history-substring-search' \
+    'tmux' \
     'prompt'
 
 # --- Module: editor ---
@@ -33,6 +34,34 @@ zstyle ':prezto:module:completion' case-sensitive 'no'
 
 # --- Module: history-substring-search ---
 zstyle ':prezto:module:history-substring-search:color' found 'bg=magenta,fg=white,bold'
+zstyle ':prezto:module:history-substring-search:color' not-found 'bg=red,fg=white,bold'
+
+# --- Module: syntax-highlighting ---
+# Order matters only for 'main' (must be first). 'pattern' provides the
+# rm-rf / sudo warnings below.
+zstyle ':prezto:module:syntax-highlighting' highlighters \
+    'main' \
+    'brackets' \
+    'pattern' \
+    'line' \
+    'cursor' \
+    'root'
+
+zstyle ':prezto:module:syntax-highlighting' styles \
+    'builtin' 'fg=cyan' \
+    'command' 'fg=green' \
+    'function' 'fg=magenta' \
+    'alias' 'fg=magenta' \
+    'path' 'fg=cyan,underline' \
+    'globbing' 'fg=blue' \
+    'reserved-word' 'fg=yellow'
+
+# Red-background warning when a dangerous pattern appears mid-command.
+# Trailing space enforces word boundary (prezto syntax).
+zstyle ':prezto:module:syntax-highlighting' pattern \
+    'rm*-rf ' 'fg=white,bold,bg=red' \
+    'rm*-fr ' 'fg=white,bold,bg=red' \
+    'sudo ' 'fg=white,bold,bg=blue'
 
 # --- Module: prompt ---
 # Powerlevel10k. Install lives at $ME_PREFIX/powerlevel10k; the setup script

@@ -18,7 +18,8 @@ fi
 [[ -r "$HOME/.merc" ]] && source "$HOME/.merc"
 [[ -r "$HOME/.me.conf" ]] && source "$HOME/.me.conf"
 
-# fnm env --- exposes the active node on PATH and enables corepack (yarn shim).
+# fnm env --- exposes the active node on PATH, enables corepack (yarn shim),
+# and installs a chpwd hook so Node version auto-switches on .nvmrc / .node-version.
 if command -v fnm >/dev/null 2>&1; then
-    eval "$(fnm env --corepack-enabled --shell zsh)"
+    eval "$(fnm env --use-on-cd --corepack-enabled --shell zsh)"
 fi
