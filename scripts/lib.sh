@@ -518,10 +518,11 @@ install_tmux() {
     rm -rf "$src"
     extract "$tar" "$src"
 
-    # tmux 3.6a's compat.h declares forkpty() with a non-const signature that
-    # conflicts with glibc 2.28+'s const-qualified <pty.h>. The declaration is
-    # unconditional (not guarded by HAVE_FORKPTY), so neither LIBS nor cache
-    # overrides help — patch compat.h in-place to match glibc.
+    # Two-part workaround for tmux 3.6a on Rocky 8 + glibc 2.28+:
+    #
+    # 1. compat.h declares forkpty() with a non-const signature, unconditional
+    #    on HAVE_FORKPTY, which conflicts with glibc's const-qualified <pty.h>
+    #    prototype. Patch the declaration to add the const qualifiers.
     if grep -q 'forkpty(int \*, char \*, struct termios \*, struct winsize \*)' "$src/compat.h"; then
         info "patching compat.h forkpty() prototype to match glibc"
         sed -i \
@@ -529,19 +530,27 @@ install_tmux() {
             "$src/compat.h"
     fi
 
+    # 2. Configure uses AC_LINK_IFELSE (no cache var) to probe forkpty; on this
+    #    host it decides forkpty is missing, then the Makefile references
+    #    compat/forkpty-linux.c which 3.6a doesn't ship (Linux is assumed to
+    #    have forkpty in libutil). Stub it out: linker will resolve forkpty
+    #    from -lutil, so the empty object contributes nothing.
+    if [[ ! -e "$src/compat/forkpty-linux.c" ]]; then
+        info "stubbing compat/forkpty-linux.c (tmux 3.6a doesn't ship this)"
+        mkdir -p "$src/compat"
+        printf '/* Linux: forkpty is provided by libutil. */\n' \
+            > "$src/compat/forkpty-linux.c"
+    fi
+
     local le="$ME_PREFIX/opt/libevent"
-    # LIBS="-lutil" lets autoconf's AC_SEARCH_LIBS([forkpty], [util]) resolve
-    # forkpty in libutil, which sets HAVE_FORKPTY=1. Without this, configure
-    # decides forkpty is missing and the Makefile expects compat/forkpty-linux.c
-    # which tmux doesn't ship (Linux is assumed to have forkpty in libutil).
-    # ac_cv_func_forkpty=yes is a belt-and-suspenders cache override in case
-    # AC_SEARCH_LIBS itself has problems in this environment.
+    # LIBS="-lutil" lets the final link resolve forkpty against libutil, which
+    # is what any real forkpty call in tmux will actually use (the stubbed
+    # compat shim contributes no symbols).
     (
         cd "$src"
         CPPFLAGS="-I$le/include $(ncurses_flags)" \
         LDFLAGS="-L$le/lib $(ncurses_ldflags)" \
         LIBS="-lutil" \
-        ac_cv_func_forkpty=yes \
             ./configure --prefix="$ME_PREFIX"
         make -j"$(nproc)"
         make install
