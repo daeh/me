@@ -921,10 +921,11 @@ install_dotfiles() {
     # Fresh manifest each run; the symlinks we (re)create are re-appended.
     : > "$ME_PREFIX/manifest.txt"
 
-    # --- Special case: pre-existing ~/.gitconfig shadows anything we set. ---
-    # We want ~/.gitconfig to be our symlink, so a regular file there needs
-    # backing up first.
-    if [[ -f "$HOME/.gitconfig" && ! -L "$HOME/.gitconfig" ]]; then
+    # --- Special case: pre-existing ~/.gitconfig shadows our XDG config. ---
+    # Git reads ~/.gitconfig in preference to $XDG_CONFIG_HOME/git/config, so
+    # any regular file at ~/.gitconfig would override the symlink we install
+    # at ~/.config/git/config. Move it aside.
+    if [[ -e "$HOME/.gitconfig" ]]; then
         mv "$HOME/.gitconfig" "$HOME/.gitconfig.bak.$(date +%F_%H.%M.%S)"
     fi
 
@@ -936,8 +937,8 @@ install_dotfiles() {
     dotfile_link me.conf        "$HOME/.me.conf"
     dotfile_link tmux.conf      "$HOME/.tmux.conf"
     dotfile_link vimrc          "$HOME/.vimrc"
-    dotfile_link gitconfig      "$HOME/.gitconfig"
-    dotfile_link jjconfig.toml  "$HOME/.jjconfig.toml"
+    dotfile_link git/config         "${XDG_CONFIG_HOME:-$HOME/.config}/git/config"
+    dotfile_link jj/config.toml     "${XDG_CONFIG_HOME:-$HOME/.config}/jj/config.toml"
     dotfile_link bashrc         "$HOME/.bashrc"
     dotfile_link bash_profile   "$HOME/.bash_profile"
     dotfile_link screenrc       "$HOME/.screenrc"
