@@ -1,173 +1,229 @@
+#!/bin/zsh
 
-echo "---------"
-echo "LOADING .merc"
-echo "Current SHELL: $0"
-ps -p $$
-echo "........."
-
-if [ -f /etc/os-release ]; then
-	# Get the distribution ID
-	DISTRO_ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
-	DISTRO_VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
-	# cat /etc/os-release
-	# hostnamectl
-	# echo $(rpm -E "%{rhel}")
-else
-	echo "Cannot determine OS distribution"
-fi
-
-# case "$DISTRO_ID" in
-# 	"centos")
-# 		echo "This is CentOS"
-# 		# CentOS specific commands here
-# 		;;
-# 	"rocky")
-# 		echo "This is Rocky Linux"
-# 		# Rocky Linux specific commands here
-# 		;;
-# 	*)
-# 		echo "This is neither CentOS nor Rocky Linux"
-# 		;;
-# esac
-
-# add_to_path_if_not_exists() {
-# 	for dir in $(echo "$1" | tr ":" "\n"); do
-# 		if [[ ":${PATH}:" != *":${dir}:"* ]]; then
-# 			export PATH="${dir}:${PATH}"
-# 		fi
-# 	done
-# }
-
-# remove_from_path() {
-# 	local part="$1"
-# 	# Use sed to remove the part from PATH
-# 	# The pattern handles cases where the part is at the beginning, middle, or end of PATH
-# 	newpath=$(echo "$PATH" | sed "s#:$part##g; s#$part:##g; s#^$part\$##g")
-# 	export PATH=$newpath
-# 	# echo $(echo "$PATH" | sed "s#:$part##g; s#$part:##g; s#^$part\$##g")
-# }
-
-
-prepend_to_path_if_not_exists() { ### higher priority
-  local -a to_add
-  local dir
-  for dir in "$@"; do
-    # Normalize (drop any trailing slash)
-    dir=${dir%/}
-    if [[ -d $dir ]]; then
-      # ${path[(I)$dir]} is 0 if not found
-      if (( ${path[(I)$dir]} == 0 )); then
-        to_add+=("$dir")
-      fi
+# OS Detection with fallback
+detect_os() {
+    if [[ -f /etc/os-release ]]; then
+        # Use a single read operation to parse both values
+        local os_info
+        os_info=$(awk -F= '/^ID=|^VERSION_ID=/ {gsub(/"/, "", $2); print $1 "=" $2}' /etc/os-release)
+        
+        DISTRO_ID=$(echo "$os_info" | awk -F= '/^ID=/ {print $2}')
+        DISTRO_VERSION=$(echo "$os_info" | awk -F= '/^VERSION_ID=/ {print $2}')
+        
+        # Validate we got both values
+        if [[ -z "$DISTRO_ID" ]]; then
+            echo "Warning: Could not determine distribution ID" >&2
+            return 1
+        fi
+        return 0
     else
-      printf 'prepend_to_path_if_not_exists: warning: %s not a directory\n' "$dir" >&2
+        echo "Error: /etc/os-release not found - cannot determine OS distribution" >&2
+        return 1
     fi
-  done
-
-  if (( ${#to_add} )); then
-    # Prepend all at once, preserving their order
-    path=( "${to_add[@]}" "${path[@]}" )
-  fi
 }
 
-append_to_path_if_not_exists() { ### lower priority
-  local -a to_add
-  local dir
-  for dir in "$@"; do
-    dir=${dir%/}
-    if [[ -d $dir ]]; then
-      if (( ${path[(I)$dir]} == 0 )); then
-        to_add+=("$dir")
-      fi
-    else
-      printf 'append_to_path_if_not_exists: warning: %s not a directory\n' "$dir" >&2
-    fi
-  done
+# Optimized path manipulation functions
+manage_path_dirs() {
+    local action="$1"
+    shift
+    local -a dirs_to_process=()
+    local dir
+    
+    # Validate and normalize directories
+    for dir in "$@"; do
+        dir=${dir%/}  # Remove trailing slash
+        if [[ -d "$dir" ]]; then
+            dirs_to_process+=("$dir")
+        else
+            printf 'Warning: %s is not a directory, skipping\n' "$dir" >&2
+        fi
+    done
+    
+    # Early return if no valid directories
+    (( ${#dirs_to_process} == 0 )) && return
+    
+    case "$action" in
+        "prepend")
+            # Remove existing occurrences first, then prepend
+            local -a newpath=()
+            local existing_dir path_dir
+            
+            # Add new dirs that aren't already in path
+            for dir in "${dirs_to_process[@]}"; do
+                if (( ${path[(I)$dir]} == 0 )); then
+                    newpath+=("$dir")
+                fi
+            done
+            
+            # Prepend new directories
+            if (( ${#newpath} > 0 )); then
+                path=("${newpath[@]}" "${path[@]}")
+            fi
+            ;;
+        "append")
+            # Only add directories not already in path
+            local -a newpath=()
+            for dir in "${dirs_to_process[@]}"; do
+                if (( ${path[(I)$dir]} == 0 )); then
+                    newpath+=("$dir")
+                fi
+            done
+            
+            if (( ${#newpath} > 0 )); then
+                path=("${path[@]}" "${newpath[@]}")
+            fi
+            ;;
+        "remove")
+            # Remove all specified directories
+            local -a filtered_path=()
+            local path_dir should_keep
+            
+            for path_dir in "${path[@]}"; do
+                should_keep=true
+                for dir in "${dirs_to_process[@]}"; do
+                    if [[ ${path_dir%/} == "$dir" ]]; then
+                        should_keep=false
+                        break
+                    fi
+                done
+                $should_keep && filtered_path+=("$path_dir")
+            done
+            path=("${filtered_path[@]}")
+            ;;
+    esac
+}
 
-  if (( ${#to_add} )); then
-    # Append all at once
-    path=( "${path[@]}" "${to_add[@]}" )
-  fi
+# Convenience wrapper functions
+prepend_to_path_if_not_exists() {
+    manage_path_dirs "prepend" "$@"
+}
+
+append_to_path_if_not_exists() {
+    manage_path_dirs "append" "$@"
 }
 
 remove_from_path() {
-  local target=${1%/}
-  local -a newpath
-  local dir
-  for dir in "${path[@]}"; do
-    # compare normalized elements
-    [[ ${dir%/} == "$target" ]] || newpath+=("$dir")
-  done
-  path=("${newpath[@]}")
+    manage_path_dirs "remove" "$@"
 }
 
-printf "\nLoading MERC for %s %s\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
+# Configuration data structure
+declare -A OS_CONFIGS
+OS_CONFIGS[centos_dir]="/home/daeda/me7"
+OS_CONFIGS[centos_gcc_unload]="openmind8/gcc/12.2.0"
+OS_CONFIGS[centos_gcc_load]="openmind/gcc/12.2.0"
+OS_CONFIGS[centos_message]="Loaded CentOS 7 paths"
+
+OS_CONFIGS[rocky_dir]="/home/daeda/me"
+OS_CONFIGS[rocky_gcc_unload]="openmind/gcc/12.2.0"
+OS_CONFIGS[rocky_gcc_load]="openmind8/gcc/12.2.0"
+OS_CONFIGS[rocky_message]="Loaded Rocky 8 paths"
+
+# Main configuration function
+configure_environment() {
+    local distro="$1"
+    local config_key="${distro}_dir"
+    
+    if [[ -z "${OS_CONFIGS[$config_key]}" ]]; then
+        printf "Unknown OS: %s %s. Skipping configuration.\n" "$distro" "${DISTRO_VERSION:-unknown}"
+        return 1
+    fi
+    
+    local me_dir="${OS_CONFIGS[$config_key]}"
+    local other_dir
+    local me_bin_tools=("zsh" "tmux" "vim" "git")
+    
+    # Determine the other directory to clean up
+    case "$distro" in
+        "centos") other_dir="${OS_CONFIGS[rocky_dir]}" ;;
+        "rocky")  other_dir="${OS_CONFIGS[centos_dir]}" ;;
+    esac
+    
+    # Remove paths from the other OS
+    if [[ -n "$other_dir" ]]; then
+        local -a other_paths=()
+        local tool
+        for tool in "${me_bin_tools[@]}"; do
+            other_paths+=("${other_dir}/${tool}/bin")
+        done
+        remove_from_path "${other_paths[@]}"
+    fi
+    
+    # Add paths for current OS
+    local -a current_paths=()
+    for tool in "${me_bin_tools[@]}"; do
+        current_paths+=("${me_dir}/${tool}/bin")
+    done
+
+	### For Astral UV and UVX ###
+	current_paths+=("$HOME/.local/bin")
+    
+    # Load/unload modules
+    local unload_module="${OS_CONFIGS[${distro}_gcc_unload]}"
+    local load_module="${OS_CONFIGS[${distro}_gcc_load]}"
+    
+    if command -v module >/dev/null 2>&1; then
+        [[ -n "$unload_module" ]] && module unload "$unload_module" 2>/dev/null
+        [[ -n "$load_module" ]] && module load "$load_module" 2>/dev/null
+    fi
 
 
-source /usr/share/Modules/init/zsh ### load the 'module' command for the current shell
+	### For Astral UV and UVX ###
+	current_paths+=("$HOME/.local/bin")
 
-# export LD_LIBRARY_PATH=/home/daeda/me/dependencies/ncurses/lib:$LD_LIBRARY_PATH
+	# For FNM
+	FNM_PATH="/home/daeda/.local/share/fnm"
+	if [ -d "$FNM_PATH" ]; then
+		current_paths+=("$FNM_PATH")
+	fi
 
+    prepend_to_path_if_not_exists "${current_paths[@]}"
 
-CENTOS_DIR="/home/daeda/me7"
-ROCKEY_DIR="/home/daeda/me"
+	# For FNM
+	if [ -d "$FNM_PATH" ]; then
+		eval "$(XDG_RUNTIME_DIR='${HOME}/.cache/fnm_multishell' fnm env --corepack-enabled --shell zsh)"
+	fi
+    
+    # Set environment variables
+    export DEFAULT_TMUX_SHELL="${me_dir}/zsh/bin/zsh"
+    export ME_PATH="${me_dir}"
+    
+    printf "%s\n" "${OS_CONFIGS[${distro}_message]}"
+}
 
-# Append different Zsh paths based on OS
-case "$DISTRO_ID" in
-	"centos")
-		# Add Zsh path for CentOS 7
-		remove_from_path "${ROCKEY_DIR}/zsh/bin"
-		remove_from_path "${ROCKEY_DIR}/tmux/bin"
-		remove_from_path "${ROCKEY_DIR}/vim/bin"
-		remove_from_path "${ROCKEY_DIR}/git/bin"
-		prepend_to_path_if_not_exists \
-			"${CENTOS_DIR}/zsh/bin" \
-			"${CENTOS_DIR}/tmux/bin" \
-			"${CENTOS_DIR}/vim/bin" \
-			"${CENTOS_DIR}/git/bin"
+# Main execution
+main() {
+    # Detect OS
+    if ! detect_os; then
+        echo "Falling back to default configuration..." >&2
+        return 1
+    fi
+    
+    printf "\nLoading MERC for %s %s\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
+    
+    # Load modules system if available
+    local modules_init="/usr/share/Modules/init/zsh"
+    if [[ -f "$modules_init" ]]; then
+        source "$modules_init"
+    else
+        echo "Warning: Modules system not found at $modules_init" >&2
+    fi
+    
+    # Configure environment based on OS
+    configure_environment "$DISTRO_ID"
+}
 
-		module unload openmind8/gcc/12.2.0
-		module load openmind/gcc/12.2.0
-
-		export DEFAULT_TMUX_SHELL="${CENTOS_DIR}/zsh/bin/zsh"
-		export ME_PATH="${CENTOS_DIR}"
-		printf "Loaded Centos 7 paths\n"
-		;;
-	"rocky")
-		# Add Zsh path for Rocky 8
-		remove_from_path "${CENTOS_DIR}/zsh/bin"
-		remove_from_path "${CENTOS_DIR}/tmux/bin"
-		remove_from_path "${CENTOS_DIR}/vim/bin"
-		remove_from_path "${CENTOS_DIR}/git/bin"
-		prepend_to_path_if_not_exists \
-			"${ROCKEY_DIR}/zsh/bin" \
-			"${ROCKEY_DIR}/tmux/bin" \
-			"${ROCKEY_DIR}/vim/bin" \
-			"${ROCKEY_DIR}/git/bin"
-		
-		module unload openmind/gcc/12.2.0
-		module load openmind8/gcc/12.2.0
-
-		export DEFAULT_TMUX_SHELL="${ROCKEY_DIR}/zsh/bin/zsh"
-		export ME_PATH="${ROCKEY_DIR}"
-		printf "Loaded Rocky 8 paths\n"
-		;;
-	*)
-		printf "Unknown OS: %s %s. Default settings will be applied.\n\n" "${DISTRO_ID}" "${DISTRO_VERSION}"
-		# append_to_path_if_not_exists "${ROCKEY_DIR}/zsh/bin:${ROCKEY_DIR}/tmux/bin:${ROCKEY_DIR}/vim/bin:${ROCKEY_DIR}/git/bin"
-		# export DEFAULT_TMUX_SHELL="${ROCKEY_DIR}/zsh/bin/zsh"
-		# export ME_PATH="${ROCKEY_DIR}"
-		# printf "Loaded default paths\n"
-		;;
-esac
+# Execute main function
+main
 
 
 ### For Astral UV and UVX ###
 ### adds $HOME/.local/bin to PATH (if not already there), which is where Astral UV and UVX are installed
-if [ -f /etc/bashrc ]; then
-	. "$HOME/.local/bin/env"
-fi
+# if [ -f /etc/bashrc ]; then
+# 	. "$HOME/.local/bin/env"
+# fi
 ### calls::
+# # add binaries to PATH if they aren't added yet
+# # affix colons on either side of $PATH to simplify matching
 # case ":${PATH}:" in
 #     *:"$HOME/.local/bin":*)
 #         ;;
@@ -178,20 +234,7 @@ fi
 # esac
 
 
-# fnm
-FNM_PATH="/home/daeda/.local/share/fnm"
-if [ -d "$FNM_PATH" ]; then
-	# export FNM_MULTISHELL_PATH="$HOME/.cache/fnm_multishell"
-	# export FNM_MULTISHELL_PATH="${FNM_MULTISHELL_PATH:-$HOME/.cache/fnm_multishell}"
-	# mkdir -p "${FNM_MULTISHELL_PATH}"
-	# export PATH="$FNM_PATH:$PATH"
-	
-	# prepend_to_path_if_not_exists "$FNM_MULTISHELL_PATH/bin"
-	append_to_path_if_not_exists "$FNM_PATH"
-	eval "$(XDG_RUNTIME_DIR='${HOME}/.cache/fnm_multishell' fnm env --corepack-enabled --shell zsh)"
 
-	# FNM_DIR
-fi
 
 
 printf "\nPATH :: \n%s\n\n" "${PATH}"

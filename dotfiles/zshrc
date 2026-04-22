@@ -139,6 +139,12 @@ plugins=(
 )
 # autoload -U compinit && compinit ### for zsh-completions
 
+### TMUX aliases provided by tmux plugin
+# "ta" "attach" "-t"
+# "tad" "attach -d" "-t"
+# "ts" "new-session" "-s"
+# "tkss" "kill-session" "-t"
+
 ### change location for .zcompdump-* files created by `compinit` mechanism of zsh
 export ZSH_COMPDUMP=$ZSH/cache/.zcompdump-$HOST
 

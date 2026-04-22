@@ -381,28 +381,6 @@ case "$DISTRO_ID" in
 esac
 
 
-###TODO install prezto instead
-# https://github.com/sorin-ionescu/prezto
-
-# Oh-my-zsh
-if [ ! -d $HOME/.oh-my-zsh ]; then
-	PATH=${INSTALL_TO}/zsh/bin:$PATH RUNZSH=no CHSH=no sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
-fi
-
-# Zsh plugins
-zshcustom=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
-# if [ ! -f ${zshcustom}/bullet-train.zsh-theme ]; then
-# 	wget http://raw.github.com/caiogondim/bullet-train-oh-my-zsh-theme/master/bullet-train.zsh-theme -O ${zshcustom}/bullet-train.zsh-theme
-# fi
-if [ ! -d ${zshcustom}/themes/powerlevel10k ]; then
-	git clone --depth=1 "https://github.com/romkatv/powerlevel10k.git" "${zshcustom}/themes/powerlevel10k"
-fi
-if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ]; then
-	git clone "https://github.com/zsh-users/zsh-autosuggestions" "${zshcustom}/plugins/zsh-autosuggestions"
-fi
-if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting ]; then
-	git clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${zshcustom}/plugins/zsh-syntax-highlighting"
-fi
 
 # tmux plugin manager
 if [ ! -d $HOME/.tmux/plugins/tpm ]; then
@@ -437,13 +415,13 @@ tmux kill-server
 # https://docs.astral.sh/uv/configuration/installer/
 # if [ ! -d /om/weka/gablab/daeda/software/miniconda3 ]; then
 	cd "${TEMP_DIR}"
-	mkdir uv
-	cd uv
+	# mkdir uv
+	# cd uv
 
 	# curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --help
 
 	# curl -LsSf https://astral.sh/uv/install.sh | bash ### works
-	curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="${INSTALL_TO}/uv" INSTALLER_NO_MODIFY_PATH=1 bash ### don't modify path
+	curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="${INSTALL_TO}/astraluv" INSTALLER_NO_MODIFY_PATH=1 bash ### don't modify path ### UNESTED
 	
 	# curl -LsSf https://astral.sh/uv/install.sh | bash
 	# curl -LsSf https://astral.sh/uv/install.sh | zsh
@@ -460,6 +438,7 @@ tmux kill-server
 ############
 # FNM      #
 ############
+cd "${TEMP_DIR}"
 # https://github.com/Schniz/fnm
 # curl -fsSL https://fnm.vercel.app/install | bash ### workd
 # curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "${HOME}/.local/share/fnm" --skip-shell
@@ -619,11 +598,53 @@ fi
 
 
 
+# -----------------------------------------------------
+
+###TODO install prezto instead
+# https://github.com/sorin-ionescu/prezto
+
+# # Oh-my-zsh
+# if [ ! -d $HOME/.oh-my-zsh ]; then
+# 	PATH=${INSTALL_TO}/zsh/bin:$PATH RUNZSH=no CHSH=no sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
+# fi
+
+# # Zsh plugins
+# zshcustom=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
+# # if [ ! -f ${zshcustom}/bullet-train.zsh-theme ]; then
+# # 	wget http://raw.github.com/caiogondim/bullet-train-oh-my-zsh-theme/master/bullet-train.zsh-theme -O ${zshcustom}/bullet-train.zsh-theme
+# # fi
+# if [ ! -d ${zshcustom}/themes/powerlevel10k ]; then
+# 	git clone --depth=1 "https://github.com/romkatv/powerlevel10k.git" "${zshcustom}/themes/powerlevel10k"
+# fi
+# if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ]; then
+# 	git clone "https://github.com/zsh-users/zsh-autosuggestions" "${zshcustom}/plugins/zsh-autosuggestions"
+# fi
+# if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting ]; then
+# 	git clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${zshcustom}/plugins/zsh-syntax-highlighting"
+# fi
+
+
+### with zsh
+
+cd "${TEMP_DIR}"
+if [ -d $INSTALL_TO/zsh && -f $INSTALL_TO/zsh/bin/zsh ]; then
+	. $INSTALL_TO/zsh/bin/zsh
+	git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"
+
+	# https://github.com/sorin-ionescu/prezto/tree/master/runcoms#readme
+	# setopt EXTENDED_GLOB
+	# for rcfile in "${ZDOTDIR:-$HOME}"/.zprezto/runcoms/^README.md(.N); do
+	# 	ln -s "$rcfile" "${ZDOTDIR:-$HOME}/.${rcfile:t}"
+	# done
+fi
+
+
 
 
 # -----------------------------------------------------
 
 # cleanup
+cd $INSTALL_TO
 rm -rf "${TEMP_DIR}"
 
 ### .merc file updated manually now ###
