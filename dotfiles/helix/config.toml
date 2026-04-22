@@ -1,0 +1,37 @@
+# ~/.config/helix/config.toml --- helix editor config.
+# Reference: https://docs.helix-editor.com/configuration.html
+
+theme = "base16_terminal"
+
+[editor]
+line-number = "relative"
+mouse = true
+bufferline = "multiple"
+color-modes = true
+cursorline = true
+auto-save = false
+auto-format = true
+completion-trigger-len = 2
+true-color = true
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+
+[editor.file-picker]
+hidden = false
+
+[editor.indent-guides]
+render = true
+character = "┊"
+
+[editor.statusline]
+left = ["mode", "spinner", "file-name", "file-modification-indicator"]
+center = []
+right = ["diagnostics", "selections", "position", "file-encoding", "file-type"]
+
+[keys.normal]
+# Leader-ish niceties; feel free to rip out.
+space.w = ":w"
+space.q = ":q"

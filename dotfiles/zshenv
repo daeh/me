@@ -9,6 +9,7 @@ export ME_PREFIX="${ME_PREFIX:-$HOME/.melocal}"
 # Tool env vars pointing into $ME_PREFIX so each tool respects our layout.
 export FNM_DIR="$ME_PREFIX/fnm"
 export BUN_INSTALL="$ME_PREFIX/bun"
+export HELIX_RUNTIME="$ME_PREFIX/opt/helix/runtime"
 
 # XDG defaults for tool caches that live *outside* $ME_PREFIX (they're the tool's
 # own ephemeral data, not ours).

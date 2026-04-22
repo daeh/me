@@ -24,8 +24,9 @@ Useful flags:
 - `--prefix=DIR` — install root (default `$HOME/.melocal`).
 - `--force-rebuild` — strip and reinstall everything.
 - `--force-rebuild=<pkg>` — rebuild one package (`libevent`, `ncurses`,
-  `openssl`, `curl`, `zsh`, `tmux`, `vim`, `git`, `jj`, `uv`, `fnm`, `node`,
-  `bun`, `python`, `rmate`). Does not cascade — rebuild dependents yourself.
+  `openssl`, `curl`, `zsh`, `tmux`, `vim`, `git`, `jj`, `task`, `helix`, `uv`,
+  `fnm`, `node`, `bun`, `python`, `rmate`). Does not cascade — rebuild
+  dependents yourself.
 - `--skip-{deps,tools,langs,shell}` — skip a phase.
 - `--offline` — refuse network, use cached tarballs (for re-runs).
 - `--verify-hashes` — enforce SHA256 checksums from the table at the top of
@@ -77,8 +78,9 @@ Everything this setup touches lives in one of these locations:
 
 | Path | Contents |
 |---|---|
-| `~/.melocal/bin/` | `zsh`, `tmux`, `vim`, `git`, `jj`, `uv`, `fnm`, `rmate`, `node`-via-fnm shim |
+| `~/.melocal/bin/` | `zsh`, `tmux`, `vim`, `git`, `jj`, `task`, `hx`, `uv`, `fnm`, `rmate`, `node`-via-fnm shim |
 | `~/.melocal/opt/{libevent,ncurses,openssl,curl}/` | Source-built deps, RPATH-linked into consumers |
+| `~/.melocal/opt/helix/` | Helix binary + `runtime/` tree; `HELIX_RUNTIME` points here |
 | `~/.melocal/repo/` | Clone of this repo |
 | `~/.melocal/zprezto/` | Prezto + its submodules |
 | `~/.melocal/powerlevel10k/` | P10k theme |
@@ -96,4 +98,5 @@ Dotfiles at `$HOME` are symlinks into `~/.melocal/repo/dotfiles/`:
 | `~/.merc`, `~/.me.conf` | `~/.melocal/repo/dotfiles/...` |
 | `~/.tmux.conf`, `~/.vimrc`, `~/.gitconfig`, `~/.jjconfig.toml` | `~/.melocal/repo/dotfiles/...` |
 | `~/.bashrc`, `~/.bash_profile`, `~/.screenrc` | `~/.melocal/repo/dotfiles/...` |
+| `~/.config/helix/config.toml` | `~/.melocal/repo/dotfiles/helix/config.toml` |
 | `~/.zprezto` | `~/.melocal/zprezto` |
