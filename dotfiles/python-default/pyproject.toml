@@ -1,0 +1,13 @@
+[project]
+name = "python-default"
+version = "0.1.0"
+description = "Default user Python environment for the me HPC bootstrap."
+requires-python = ">=3.13"
+dependencies = [
+    "jupyterlab",
+    "ruff",
+    "ty",
+    "numpy",
+    "pandas",
+    "tmuxp",
+]

@@ -813,8 +813,9 @@ install_bun() {
 
 install_python_default() {
     local venv="$ME_PREFIX/python-default"
+    local project="$ME_PREFIX/python-project"
     local sentinel="$venv/bin/python"
-    [[ "$FORCE_REBUILD" == "python" ]] && rm -rf "$venv"
+    [[ "$FORCE_REBUILD" == "python" ]] && rm -rf "$venv" "$project"
     needs_rebuild "python" "$sentinel" || { info "python-default: already seeded"; return 0; }
     step "Install: default Python venv ($PYTHON_VERSION via uv)"
 
@@ -824,7 +825,17 @@ install_python_default() {
         "$ME_PREFIX/bin/uv" python install 3.13
         PYTHON_VERSION=3.13
     fi
-    "$ME_PREFIX/bin/uv" venv --python "$PYTHON_VERSION" --seed "$venv"
+
+    # Project dir holds pyproject.toml (+ uv.lock once synced). The venv lives
+    # separately at $ME_PREFIX/python-default so $PATH stays clean and
+    # uninstall is a single rm -rf under $ME_PREFIX.
+    mkdir -p "$project"
+    cp "$ME_PREFIX/repo/dotfiles/python-default/pyproject.toml" "$project/pyproject.toml"
+    (
+        cd "$project"
+        UV_PROJECT_ENVIRONMENT="$venv" \
+            "$ME_PREFIX/bin/uv" sync --python "$PYTHON_VERSION"
+    )
 }
 
 install_rmate() {
