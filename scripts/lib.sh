@@ -57,6 +57,7 @@ SKIP_LANGS="${SKIP_LANGS:-0}"
 SKIP_SHELL="${SKIP_SHELL:-0}"
 FORCE_REBUILD="${FORCE_REBUILD:-}"
 FORCE_REBUILD_ALL="${FORCE_REBUILD_ALL:-0}"
+NODE_VERSION="${NODE_VERSION:-}"
 PREFLIGHT_DONE="${PREFLIGHT_DONE:-0}"
 
 # ============================================================================
@@ -95,11 +96,12 @@ parse_flags() {
             --skip-shell)        SKIP_SHELL=1 ;;
             --force-rebuild)     FORCE_REBUILD_ALL=1 ;;
             --force-rebuild=*)   FORCE_REBUILD=${1#*=} ;;
+            --node-version=*)    NODE_VERSION=${1#*=} ;;
             -h|--help)
                 cat >&2 <<'EOH'
 Usage: setup.sh [--prefix=DIR] [--src=DIR] [--offline] [--verify-hashes]
                 [--skip-deps] [--skip-tools] [--skip-langs] [--skip-shell]
-                [--force-rebuild[=PKG]]
+                [--force-rebuild[=PKG]] [--node-version=VER]
 
 Or run a single phase:
   bash scripts/preflight.sh
@@ -768,32 +770,50 @@ install_fnm() {
 }
 
 install_node_yarn() {
-    local node_sentinel="$ME_PREFIX/fnm/aliases/default"
-    [[ "$FORCE_REBUILD" == "node" ]] && rm -rf "$ME_PREFIX/fnm"
-    if [[ -e "$node_sentinel" && "$FORCE_REBUILD_ALL" != 1 ]]; then
-        info "node: already installed via fnm"
-    else
-        step "Install: Node LTS + yarn (via fnm + corepack)"
-        mkdir -p "$ME_PREFIX/fnm"
+    if [[ "$OFFLINE" == 1 ]]; then
+        info "offline: skipping node toolchain refresh"
+        return 0
+    fi
+
+    [[ "$FORCE_REBUILD" == "node" ]] && rm -rf "$ME_PREFIX/fnm/node-versions" "$ME_PREFIX/fnm/aliases"
+
+    step "Install: Node + npm globals (via fnm)"
+    mkdir -p "$ME_PREFIX/fnm"
+
+    # Node 25 dropped bundled corepack and fnm's --corepack-enabled is broken
+    # against it (fnm#1469); install corepack explicitly via npm below instead.
+    if [[ -z "$NODE_VERSION" ]]; then
         FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" install --lts
-        # Set the default to whatever fnm just activated so new shells pick it up.
-        local active
-        active=$(FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" current 2>/dev/null || true)
-        if [[ -n "$active" && "$active" != "system" ]]; then
-            FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" default "$active"
+    else
+        FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" install "$NODE_VERSION"
+    fi
+
+    local desired
+    desired=$(FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" current 2>/dev/null || true)
+    if [[ -z "$desired" || "$desired" == "system" ]]; then
+        if [[ -n "$NODE_VERSION" ]]; then
+            desired="$NODE_VERSION"
+        elif [[ -e "$ME_PREFIX/fnm/aliases/lts-latest" ]]; then
+            desired="lts-latest"
+        else
+            die "could not resolve installed node version (fnm current returned '$desired')"
         fi
     fi
 
-    # Corepack ships with node. Activate fnm's environment in this shell and
-    # install yarn globally via corepack (single source of truth for yarn).
-    eval "$(FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" env --corepack-enabled --shell bash)"
-    if ! command -v yarn >/dev/null 2>&1; then
-        info "installing yarn via corepack"
-        # `corepack install -g` is the modern recipe (Corepack ≥ 0.30).
-        # On older corepack, fall back to `corepack prepare ... --activate`.
-        corepack install -g yarn@stable 2>/dev/null \
-            || corepack prepare yarn@stable --activate
-    fi
+    FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" use "$desired"
+    FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" default "$desired"
+
+    eval "$(FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" env --shell bash)"
+
+    npm install -g npm@latest \
+        || warn "npm self-upgrade failed (likely nodejs/node#62425 on 22.22.2); continuing with bundled npm"
+    npm install -g corepack@latest
+    corepack enable || true
+    corepack prepare yarn@stable --activate
+    npm install -g eslint
+    npm install -g eslint_d
+    npm install -g jshint
+    npm install -g prettier
 }
 
 install_bun() {

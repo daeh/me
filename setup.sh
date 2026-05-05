@@ -40,7 +40,7 @@
 # Usage:
 #   bash setup.sh [--prefix=DIR] [--src=DIR] [--offline] [--verify-hashes]
 #                 [--skip-deps] [--skip-tools] [--skip-langs] [--skip-shell]
-#                 [--force-rebuild[=PKG]]
+#                 [--force-rebuild[=PKG]] [--node-version=VER]
 
 set -euo pipefail
 umask 022

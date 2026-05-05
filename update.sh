@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # update.sh --- pull-and-refresh helper. Assumes setup.sh has already run.
 #
+# Usage: update.sh [--node-version=VER]
+#
 # What it does:
 #   - git pull in $ME_PREFIX/{repo,zprezto,powerlevel10k,tmux-plugins/tpm}
 #   - uv self update
-#   - fnm install --lts  (fetches any new LTS releases)
+#   - fnm install (--lts by default, or the explicit --node-version=VER); then
+#     fnm use/default that version and refresh npm globals (npm, corepack,
+#     yarn via corepack, eslint, eslint_d, jshint, prettier)
 #   - bun upgrade
 #   - jj version check against $ME_PREFIX/repo/setup.sh's pinned JJ_VERSION
 #
@@ -12,6 +16,14 @@
 # version pins in setup.sh and run `bash setup.sh --force-rebuild=<pkg>` for that.
 
 set -euo pipefail
+
+NODE_VERSION="${NODE_VERSION:-}"
+for arg in "$@"; do
+    case $arg in
+        --node-version=*) NODE_VERSION=${arg#*=} ;;
+        *) echo "unknown flag: $arg" >&2; exit 1 ;;
+    esac
+done
 
 ME_PREFIX="${ME_PREFIX:-$HOME/.melocal}"
 
@@ -45,8 +57,43 @@ if [[ -x "$ME_PREFIX/bin/uv" ]]; then
 fi
 
 if [[ -x "$ME_PREFIX/bin/fnm" ]]; then
-    info "fnm install --lts (picks up any new LTS point release)"
-    FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" install --lts || true
+    if [[ -z "$NODE_VERSION" ]]; then
+        info "fnm install --lts (picks up any new LTS point release)"
+        FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" install --lts || true
+    else
+        info "fnm install $NODE_VERSION"
+        FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" install "$NODE_VERSION" || true
+    fi
+
+    desired=$(FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" current 2>/dev/null || true)
+    if [[ -z "$desired" || "$desired" == "system" ]]; then
+        if [[ -n "$NODE_VERSION" ]]; then
+            desired="$NODE_VERSION"
+        elif [[ -e "$ME_PREFIX/fnm/aliases/lts-latest" ]]; then
+            desired="lts-latest"
+        else
+            desired=""
+        fi
+    fi
+
+    if [[ -n "$desired" ]]; then
+        FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" use "$desired" || true
+        FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" default "$desired" || true
+
+        eval "$(FNM_DIR="$ME_PREFIX/fnm" "$ME_PREFIX/bin/fnm" env --shell bash)"
+
+        info "refreshing npm globals (npm, corepack, yarn, eslint, eslint_d, jshint, prettier)"
+        npm install -g npm@latest || true
+        npm install -g corepack@latest || true
+        corepack enable || true
+        corepack prepare yarn@stable --activate || true
+        npm install -g eslint || true
+        npm install -g eslint_d || true
+        npm install -g jshint || true
+        npm install -g prettier || true
+    else
+        info "skip: could not resolve a node version to activate"
+    fi
 fi
 
 if [[ -x "$ME_PREFIX/bun/bin/bun" ]]; then
